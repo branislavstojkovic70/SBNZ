@@ -9,7 +9,7 @@ import com.ftn.sbnz.model.models.users.User;
 
 public interface UserRepository extends JpaRepository<User, Integer>{
     public User findOneById(Integer id);
-    public User findOneByEmailAndPassword(String email, String password);
+    User findByEmailAndPassword(String email, String password);
     Optional<User> findOneByEmail(String email);
     User findOneUserByEmail(String email);
     public List<User> findAll();

@@ -6,32 +6,29 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
 
 import com.ftn.sbnz.model.models.users.User;
-
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtUtil {
-
-
     private final String secret_key = "mysecretkey";
-    private long accessTokenValidity = 60*60*1000;
+    private long accessTokenValidity = 60*60*1000; // one hour
 
     private final JwtParser jwtParser;
-
     private final String TOKEN_HEADER = "Authorization";
     private final String TOKEN_PREFIX = "Bearer ";
 
-    public JwtUtil(){
+    public JwtUtil() {
         this.jwtParser = Jwts.parser().setSigningKey(secret_key);
     }
 
     public String createToken(User user) {
         Claims claims = Jwts.claims().setSubject(user.getEmail());
-        claims.put("firstName",user.getIme());
-        claims.put("lastName",user.getPrezime());
-        claims.put("role", user.getRole());
+        claims.put("firstName", user.getIme());
+        claims.put("lastName", user.getPrezime());
+        claims.put("role", user.getRole().name()); // Storing the role name as a string
         Date tokenCreateTime = new Date();
         Date tokenValidity = new Date(tokenCreateTime.getTime() + TimeUnit.MINUTES.toMillis(accessTokenValidity));
         return Jwts.builder()
@@ -62,7 +59,6 @@ public class JwtUtil {
     }
 
     public String resolveToken(HttpServletRequest request) {
-
         String bearerToken = request.getHeader(TOKEN_HEADER);
         if (bearerToken != null && bearerToken.startsWith(TOKEN_PREFIX)) {
             return bearerToken.substring(TOKEN_PREFIX.length());
@@ -83,8 +79,6 @@ public class JwtUtil {
     }
 
     private List<String> getRoles(Claims claims) {
-        return (List<String>) claims.get("roles");
+        return Collections.singletonList(claims.get("role", String.class));
     }
-
-
 }
