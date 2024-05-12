@@ -4,7 +4,6 @@ import java.util.Arrays;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieScanner;
