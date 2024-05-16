@@ -11,5 +11,8 @@
     <kbase name="forward1Kbase" packages="simple">
         <ksession name="forward1Ksession"/>
     </kbase>
-    
+    <kbase name="forward2Kbase" packages="simple">
+        <ksession name="forward2Ksession"/>
+    </kbase>
+
 </kmodule>
