@@ -16,14 +16,7 @@ import javax.persistence.OneToOne;
 import com.ftn.sbnz.model.models.therapy.Therapy;
 import com.ftn.sbnz.model.models.users.Doctor;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Examination {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,4 +45,97 @@ public class Examination {
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "therapy_id", referencedColumnName = "id")
     private Therapy therapy;
+
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
+    }
+
+    public Doctor getDoctor() {
+        return doctor;
+    }
+
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public ExaminationState getExaminationState() {
+        return examinationState;
+    }
+
+    public void setExaminationState(ExaminationState examinationState) {
+        this.examinationState = examinationState;
+    }
+
+    public Set<ExaminationType> getExaminationTypes() {
+        return examinationTypes;
+    }
+
+    public void setExaminationTypes(Set<ExaminationType> examinationTypes) {
+        this.examinationTypes = examinationTypes;
+    }
+
+    public Set<Symptom> getSymptoms() {
+        return symptoms;
+    }
+
+    public void setSymptoms(Set<Symptom> symptoms) {
+        this.symptoms = symptoms;
+    }
+
+    public Diagnosis getDiagnosis() {
+        return diagnosis;
+    }
+
+    public void setDiagnosis(Diagnosis diagnosis) {
+        this.diagnosis = diagnosis;
+    }
+
+    public Therapy getTherapy() {
+        return therapy;
+    }
+
+    public void setTherapy(Therapy therapy) {
+        this.therapy = therapy;
+    }
+
+    public Examination() {
+    }
+
+    public Examination(Integer id, LocalDateTime dateTime, Doctor doctor, String note,
+            ExaminationState examinationState, Set<ExaminationType> examinationTypes, Set<Symptom> symptoms,
+            Diagnosis diagnosis, Therapy therapy) {
+        this.id = id;
+        this.dateTime = dateTime;
+        this.doctor = doctor;
+        this.note = note;
+        this.examinationState = examinationState;
+        this.examinationTypes = examinationTypes;
+        this.symptoms = symptoms;
+        this.diagnosis = diagnosis;
+        this.therapy = therapy;
+    }
+
+    
+    
 }

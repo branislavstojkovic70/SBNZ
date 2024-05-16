@@ -5,14 +5,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TestResult {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,4 +15,46 @@ public class TestResult {
     private String measureUnit;
     private double value;
     private String description;
+    public Integer getId() {
+        return id;
+    }
+    public void setId(Integer id) {
+        this.id = id;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getMeasureUnit() {
+        return measureUnit;
+    }
+    public void setMeasureUnit(String measureUnit) {
+        this.measureUnit = measureUnit;
+    }
+    public double getValue() {
+        return value;
+    }
+    public void setValue(double value) {
+        this.value = value;
+    }
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    public TestResult() {
+    }
+    public TestResult(Integer id, String name, String measureUnit, double value, String description) {
+        this.id = id;
+        this.name = name;
+        this.measureUnit = measureUnit;
+        this.value = value;
+        this.description = description;
+    }
+
+    
 }
+

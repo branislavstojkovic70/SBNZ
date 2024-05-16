@@ -7,14 +7,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TNMKlassification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,4 +17,47 @@ public class TNMKlassification {
     private double nKlassification;
     private double mKlassification;
     private LocalDateTime date;
+    public Integer getId() {
+        return id;
+    }
+    public void setId(Integer id) {
+        this.id = id;
+    }
+    public double gettKlassification() {
+        return tKlassification;
+    }
+    public void settKlassification(double tKlassification) {
+        this.tKlassification = tKlassification;
+    }
+    public double getnKlassification() {
+        return nKlassification;
+    }
+    public void setnKlassification(double nKlassification) {
+        this.nKlassification = nKlassification;
+    }
+    public double getmKlassification() {
+        return mKlassification;
+    }
+    public void setmKlassification(double mKlassification) {
+        this.mKlassification = mKlassification;
+    }
+    public LocalDateTime getDate() {
+        return date;
+    }
+    public void setDate(LocalDateTime date) {
+        this.date = date;
+    }
+
+    public TNMKlassification() {
+    }
+    public TNMKlassification(Integer id, double tKlassification, double nKlassification, double mKlassification,
+            LocalDateTime date) {
+        this.id = id;
+        this.tKlassification = tKlassification;
+        this.nKlassification = nKlassification;
+        this.mKlassification = mKlassification;
+        this.date = date;
+    }
+
+    
 }

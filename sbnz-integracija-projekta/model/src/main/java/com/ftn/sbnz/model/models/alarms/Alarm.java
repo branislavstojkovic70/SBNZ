@@ -13,14 +13,7 @@ import javax.persistence.OneToOne;
 
 import com.ftn.sbnz.model.models.users.Patient;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Alarm {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +25,38 @@ public class Alarm {
 
     private String description;
     private LocalDateTime time;
+    public Integer getId() {
+        return id;
+    }
+    public void setId(Integer id) {
+        this.id = id;
+    }
+    public Patient getPatient() {
+        return patient;
+    }
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    public LocalDateTime getTime() {
+        return time;
+    }
+    public void setTime(LocalDateTime time) {
+        this.time = time;
+    }
+    public Alarm() {
+    }
+    public Alarm(Integer id, Patient patient, String description, LocalDateTime time) {
+        this.id = id;
+        this.patient = patient;
+        this.description = description;
+        this.time = time;
+    }
+
+    
 }

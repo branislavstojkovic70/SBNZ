@@ -1,0 +1,266 @@
+import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.users.OperatedPatient;
+import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.model.models.examinations.ExaminationState;
+import com.ftn.sbnz.model.models.examinations.Symptom;
+import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
+import com.ftn.sbnz.model.models.examinations.ExaminationType;
+import com.ftn.sbnz.model.models.examinations.TumorType;
+import com.ftn.sbnz.model.models.examinations.TestResult;
+import com.ftn.sbnz.model.models.examinations.Diagnosis;
+import com.ftn.sbnz.model.models.examinations.TNMKlassification;
+import com.ftn.sbnz.model.models.therapy.Therapy;
+import com.ftn.sbnz.model.models.therapy.Operation;
+import com.ftn.sbnz.model.models.therapy.PaliativeCare;
+import com.ftn.sbnz.model.models.therapy.TherapyState;
+import com.ftn.sbnz.model.models.therapy.TherapyType;
+
+import java.time.LocalDateTime;
+import java.util.Set;
+
+global Set<String> criticalSymptoms;
+
+rule "Schedule CT and RTG based on specific symptoms"
+when
+    $patient: Patient($examinations: examinations)
+    $examination: Examination($symptoms: symptoms) from $examinations
+    Number(intValue >= 3) from accumulate(
+        $symptom: Symptom(name in (criticalSymptoms) && this memberOf $symptoms), 
+        count($symptom)
+    )
+then
+    Examination ctExamination = new Examination();
+    ctExamination.setDateTime(LocalDateTime.now());
+    ctExamination.setExaminationState(ExaminationState.SCHEDULED);
+    ctExamination.setNote("Scheduled CT scan based on symptoms");
+    ctExamination.setSymptoms($examination.getSymptoms());
+
+    Examination rtgExamination = new Examination();
+    rtgExamination.setDateTime(LocalDateTime.now());
+    rtgExamination.setExaminationState(ExaminationState.SCHEDULED);
+    rtgExamination.setNote("Scheduled RTG scan based on symptoms");
+    rtgExamination.setSymptoms($examination.getSymptoms());
+
+    $patient.getExaminations().add(ctExamination);
+    $patient.getExaminations().add(rtgExamination);
+
+    update($patient);
+end
+
+rule "Schedule Biopsy if CT and RTG results are positive"
+when
+    $patient : Patient($examinations: examinations)
+    not (Examination(
+        note matches ".*biopsy.*"
+    ) from $examinations)
+    $ctExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note == "CT scan"
+    ) from $examinations
+    $ctType : ExaminationType() from $ctExamination.getExaminationTypes()
+    $ctResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $ctType.getTestResults()
+    $rtgExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note == "RTG scan"
+    ) from $examinations
+    $rtgType : ExaminationType() from $rtgExamination.getExaminationTypes()
+    $rtgResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $rtgType.getTestResults()
+then
+    Examination biopsyExamination = new Examination();
+    biopsyExamination.setDateTime(LocalDateTime.now().plusDays(1));
+    biopsyExamination.setExaminationState(ExaminationState.SCHEDULED);
+    biopsyExamination.setNote("Scheduled biopsy based on positive CT and RTG results");
+
+    if ($ctExamination.getExaminationTypes().size() > 2 && $rtgExamination.getExaminationTypes().size() > 2) {
+        biopsyExamination.setNote(biopsyExamination.getNote() + " - Core Needle Biopsy");
+    } else {
+        biopsyExamination.setNote(biopsyExamination.getNote() + " - Fine Needle Aspiration Biopsy");
+    }
+
+    $patient.getExaminations().add(biopsyExamination);
+    update($patient);
+
+    System.out.println("Biopsy scheduled for patient based on positive CT and RTG results.");
+end
+
+rule "Schedule follow-up tests after malignant biopsy"
+    no-loop true
+when
+    $patient : Patient($examinations: examinations)
+    $biopsyExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note matches ".*biopsy.*"
+    ) from $examinations
+    $biopsyType : ExaminationType() from $biopsyExamination.getExaminationTypes()
+    $biopsyResult : TestResult(
+        value > 0.0,
+        description == "malignant"
+    ) from $biopsyType.getTestResults()
+    not (
+        Examination(note == "Scheduled Spirometrija") from $examinations
+    )
+    not (
+        Examination(note == "Scheduled Test difuznog kapaciteta pluća (DLCO)") from $examinations
+    )
+    not (
+        Examination(note == "Scheduled Spiroergometrija") from $examinations
+    )
+then
+    Examination spirometryExamination = new Examination();
+    spirometryExamination.setDateTime(LocalDateTime.now().plusDays(1));
+    spirometryExamination.setExaminationState(ExaminationState.SCHEDULED);
+    spirometryExamination.setNote("Scheduled Spirometrija");
+
+    Examination dlcoExamination = new Examination();
+    dlcoExamination.setDateTime(LocalDateTime.now().plusDays(1));
+    dlcoExamination.setExaminationState(ExaminationState.SCHEDULED);
+    dlcoExamination.setNote("Scheduled Test difuznog kapaciteta pluća (DLCO)");
+
+    Examination spiroergometryExamination = new Examination();
+    spiroergometryExamination.setDateTime(LocalDateTime.now().plusDays(1));
+    spiroergometryExamination.setExaminationState(ExaminationState.SCHEDULED);
+    spiroergometryExamination.setNote("Scheduled Spiroergometrija");
+
+    $patient.getExaminations().add(spirometryExamination);
+    $patient.getExaminations().add(dlcoExamination);
+    $patient.getExaminations().add(spiroergometryExamination);
+
+    update($patient);
+
+    System.out.println("Scheduled follow-up tests for patient after malignant biopsy.");
+end
+
+
+rule "Schedule genetic test if follow-up test results are bad"
+    no-loop true
+when
+    $patient : Patient($examinations: examinations)
+    $spirometryExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note == "Scheduled Spirometrija"
+    ) from $examinations
+    $spirometryType : ExaminationType() from $spirometryExamination.getExaminationTypes()
+    $spirometryResult : TestResult(
+        (description == "FEV1" && value < 80.0) || 
+        (description == "FVC" && value < 80.0) || 
+        (description == "FEV1/FVC" && value < 70.0)
+    ) from $spirometryType.getTestResults()
+    $dlcoExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note == "Scheduled Test difuznog kapaciteta pluća (DLCO)"
+    ) from $examinations
+    $dlcoType : ExaminationType() from $dlcoExamination.getExaminationTypes()
+    $dlcoResult : TestResult(
+        description == "DLCO" && value < 80.0
+    ) from $dlcoType.getTestResults()
+    $spiroergometryExamination : Examination(
+        examinationState == ExaminationState.DONE,
+        note == "Scheduled Spiroergometrija"
+    ) from $examinations
+    $spiroergometryType : ExaminationType() from $spiroergometryExamination.getExaminationTypes()
+    $spiroergometryResult : TestResult(
+        (description == "VO2 max" && value < 80.0) || 
+        (description == "Relative VO2 max" && value < 80.0)
+    ) from $spiroergometryType.getTestResults()
+    not (
+        Examination(
+            note == "Scheduled Genetic Test"
+        ) from $examinations
+    )
+then
+    Examination geneticTestExamination = new Examination();
+    geneticTestExamination.setDateTime(LocalDateTime.now().plusDays(1));
+    geneticTestExamination.setExaminationState(ExaminationState.SCHEDULED);
+    geneticTestExamination.setNote("Scheduled Genetic Test");
+
+    $patient.getExaminations().add(geneticTestExamination);
+
+    update($patient);
+
+    System.out.println("Scheduled genetic test for patient due to bad follow-up test results.");
+end
+
+rule "Determine cancer stage and create diagnosis"
+    no-loop true
+when
+    $patient: Patient($examinations: examinations)
+    $examination: Examination(
+        examinationState == ExaminationState.DONE,
+        diagnosis == null
+    ) from $examinations
+    $examinationType: ExaminationType() from $examination.getExaminationTypes()
+    $biopsyResult: TestResult(description == "malignant", value > 0.0) from $examinationType.getTestResults()
+    $spirometryResult: TestResult((description == "FEV1" && value < 80.0) || 
+                                  (description == "FVC" && value < 80.0) || 
+                                  (description == "FEV1/FVC" && value < 70.0)) from $examinationType.getTestResults()
+    $dlcoResult: TestResult(description == "DLCO" && value < 80.0) from $examinationType.getTestResults()
+    $spiroergometryResult: TestResult((description == "VO2 max" && value < 80.0) || 
+                                      (description == "Relative VO2 max" && value < 80.0)) from $examinationType.getTestResults()
+then
+    TNMKlassification tnm = new TNMKlassification();
+    tnm.settKlassification(2.0); 
+    tnm.setnKlassification(1.0);
+    tnm.setmKlassification(0.0);
+
+    Diagnosis diagnosis = new Diagnosis();
+    diagnosis.setTumorDetected(true);
+    diagnosis.setTnmKlassification(tnm);
+    TumorType tumorType = determineTumorType($examination);
+    diagnosis.setTumorType(tumorType);
+    $examination.setDiagnosis(diagnosis);
+    update($examination);
+    update($patient);
+
+    System.out.println("Diagnosis created for patient based on TNM classification and test results.");
+end
+
+function TumorType determineTumorType(Examination examination) {
+    if (examination.getNote().contains("pulmonalni")) {
+        return TumorType.INTRATHORACAL_PULMONARY;
+    } else if (examination.getNote().contains("nepulmonalni")) {
+        return TumorType.INTRATHORACAL_NONPULMONARY;
+    } else if (examination.getNote().contains("metastatski")) {
+        return TumorType.EXTRATORACAL_PULMONARY;
+    } else if (examination.getNote().contains("nemetastatski")) {
+        return TumorType.EXTRATORACAL_NONPULMONARY;
+    }
+    return TumorType.INTRATHORACAL_NONPULMONARY;
+}
+
+rule "Determine therapy based on TNM classification"
+    no-loop true
+when
+    $examination: Examination(diagnosis != null)
+    $diagnosis: Diagnosis(tnmKlassification != null) from $examination.getDiagnosis()
+    $tnm: TNMKlassification(tKlassification > 0.0) from $diagnosis.getTnmKlassification()
+then
+    Therapy therapy = new Therapy();
+    therapy.setStrDateTime(LocalDateTime.now());
+    therapy.setEnDateTime(LocalDateTime.now().plusMonths(6));
+    therapy.setTherapyState(TherapyState.PLANNED);
+
+    if ($tnm.gettKlassification() <= 2 && $tnm.getnKlassification() == 0 && $tnm.getmKlassification() == 0) {
+        therapy.setTherapyType(TherapyType.OPERATION);
+        therapy.setDescription("Planned surgery based on TNM classification");
+    } else if ($tnm.gettKlassification() <= 3 && $tnm.getnKlassification() <= 1 && $tnm.getmKlassification() == 0) {
+        therapy.setTherapyType(TherapyType.RADIOTHERAPY);
+        therapy.setDescription("Planned radiotherapy based on TNM classification");
+    } else if ($tnm.gettKlassification() <= 4 && $tnm.getnKlassification() <= 2 && $tnm.getmKlassification() == 0) {
+        therapy.setTherapyType(TherapyType.CHEMOTHERAPY);
+        therapy.setDescription("Planned chemotherapy based on TNM classification");
+    } else {
+        therapy.setTherapyType(TherapyType.PALLIATIVE_CARE);
+        therapy.setDescription("Planned palliative care based on TNM classification");
+    }
+
+    $examination.setTherapy(therapy);
+    update($examination);
+
+    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
+end
