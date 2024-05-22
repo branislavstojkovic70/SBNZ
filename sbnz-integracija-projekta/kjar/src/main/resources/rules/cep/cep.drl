@@ -1,1 +1,58 @@
 package cep;
+
+import com.ftn.sbnz.model.events.TemperatureEvent;
+import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.examinations.ExaminationState;
+import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.model.models.therapy.Operation;
+import com.ftn.sbnz.model.models.therapy.TherapyState;
+import com.ftn.sbnz.model.models.therapy.TherapyType;
+import com.ftn.sbnz.model.models.Result;
+import java.util.Date;
+
+global Result result;
+
+declare Alarm
+    @role(event)
+    temperature: double
+    patient: Patient
+end
+
+rule "Generate Temperature Warning"
+no-loop
+when
+    $e1 : TemperatureEvent($patient: patient, temperature > 38.5, $temperature: temperature)
+    Number(intValue >= 2) from accumulate(
+        $e : TemperatureEvent(
+            temperature > 38.5,
+            patient.getId() == $patient.getId()
+        ) over window:time(12h),
+        count($e)
+    )
+    not Alarm(patient.getId() == $patient.getId())
+then
+    insert(new Alarm($temperature, $patient));
+    result.addFact("Temperature Warning Generated for patient: " + $patient.getIme());
+    System.out.println("Kreirano je upozorenje za visoku temperaturu za pacijenta: " + $patient.getIme());
+end
+
+rule "Generate Emergency Intervention"
+when
+    $alarm : Alarm($temperature: temperature, $patient: patient)
+    not TemperatureEvent(
+        patient.getId() == $patient.getId(),
+        temperature < 38.5,
+        this after[0s, 2h] $alarm
+    )
+    $examination : Examination(
+        therapy != null,
+        therapy.therapyState == TherapyState.PLANNED,
+        therapy.therapyType == TherapyType.OPERATION
+    ) from $patient.getExaminations()
+then
+    modify($examination.getTherapy()) {
+        setTherapyState(TherapyState.CANCELED);
+    }
+    result.addFact("Emergency Intervention Required for patient: " + $patient.getIme());
+    System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visoke temperature od " + $temperature + ". Operacija je otkazana.");
+end

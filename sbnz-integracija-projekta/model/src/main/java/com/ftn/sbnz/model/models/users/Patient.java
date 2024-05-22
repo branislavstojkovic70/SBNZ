@@ -20,6 +20,7 @@ public class Patient extends User{
     private int puls;
     private double saturationO2;
     private double bodyTemperature;
+    
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "pacijent_id")
     private Set<Examination> examinations;
