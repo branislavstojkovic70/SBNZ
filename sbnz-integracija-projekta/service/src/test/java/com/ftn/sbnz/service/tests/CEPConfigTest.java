@@ -1,31 +1,14 @@
 package com.ftn.sbnz.service.tests;
 
-import com.ftn.sbnz.model.models.examinations.Diagnosis;
-import com.ftn.sbnz.model.models.examinations.Examination;
-import com.ftn.sbnz.model.models.examinations.ExaminationState;
-import com.ftn.sbnz.model.models.examinations.ExaminationType;
-import com.ftn.sbnz.model.models.examinations.Symptom;
-import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
-import com.ftn.sbnz.model.models.examinations.TNMKlassification;
-import com.ftn.sbnz.model.models.examinations.TestResult;
-import com.ftn.sbnz.model.models.examinations.TumorType;
-import com.ftn.sbnz.model.models.therapy.Operation;
-import com.ftn.sbnz.model.models.therapy.PaliativeCare;
-import com.ftn.sbnz.model.models.therapy.Therapy;
-import com.ftn.sbnz.model.models.therapy.TherapyState;
-import com.ftn.sbnz.model.models.therapy.TherapyType;
-import com.ftn.sbnz.model.models.users.OperatedPatient;
 import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.users.Role;
 import com.ftn.sbnz.service.ServiceApplication;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.kie.api.KieServices;
 
 import java.time.LocalDateTime;
@@ -33,13 +16,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = ServiceApplication.class)
 public class CEPConfigTest {
 

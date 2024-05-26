@@ -1,49 +1,58 @@
 package cep;
 
 import com.ftn.sbnz.model.events.TemperatureEvent;
+import com.ftn.sbnz.model.events.PulseEvent;
 import com.ftn.sbnz.model.models.users.Patient;
-import com.ftn.sbnz.model.models.examinations.ExaminationState;
+import com.ftn.sbnz.model.models.alarms.TemperatureAlarm;
+import com.ftn.sbnz.model.models.alarms.PulseAlarm;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import com.ftn.sbnz.model.models.therapy.Operation;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
 import com.ftn.sbnz.model.models.Result;
-import java.util.Date;
 
 global Result result;
 
-declare Alarm
-    @role(event)
-    temperature: double
-    patient: Patient
-end
-
 rule "Generate Temperature Warning"
-no-loop
 when
-    $e1 : TemperatureEvent($patient: patient, temperature > 38.5, $temperature: temperature)
+    $patient : Patient()
+    $e1 : TemperatureEvent(patient.getId() == $patient.getId(), temperature > 38.5, $temperature: temperature)
     Number(intValue >= 2) from accumulate(
-        $e : TemperatureEvent(
+        $event : TemperatureEvent(
             temperature > 38.5,
             patient.getId() == $patient.getId()
         ) over window:time(12h),
-        count($e)
+        count($event)
     )
-    not Alarm(patient.getId() == $patient.getId())
 then
-    insert(new Alarm($temperature, $patient));
+    TemperatureAlarm tempAlarm = new TemperatureAlarm($patient, $temperature, new java.util.Date());
+    insert(tempAlarm);
     result.addFact("Temperature Warning Generated for patient: " + $patient.getIme());
     System.out.println("Kreirano je upozorenje za visoku temperaturu za pacijenta: " + $patient.getIme());
 end
 
-rule "Generate Emergency Intervention"
+rule "Check Pulse After Temperature Warning"
 when
-    $alarm : Alarm($temperature: temperature, $patient: patient)
-    not TemperatureEvent(
-        patient.getId() == $patient.getId(),
-        temperature < 38.5,
-        this after[0s, 2h] $alarm
+    $temperatureAlarm : TemperatureAlarm($patient: patient)
+    $e1 : PulseEvent($patient.getId() == patient.getId(), pulse > 100, $pulse: pulse)
+    Number(intValue >= 2) from accumulate(
+        $event : PulseEvent(
+            pulse > 100,
+            patient.getId() == $patient.getId()
+        ) over window:time(12h),
+        count($event)
     )
+then
+    PulseAlarm pulseAlarm = new PulseAlarm($patient, $pulse, new java.util.Date());
+    insert(pulseAlarm);
+    result.addFact("Pulse Warning Generated for patient: " + $patient.getIme());
+    System.out.println("Kreirano je upozorenje za visoki puls za pacijenta: " + $patient.getIme());
+end
+
+rule "Generate Emergency Intervention"
+no-loop
+when
+    $pulseAlarm : PulseAlarm($patient: patient)
     $examination : Examination(
         therapy != null,
         therapy.therapyState == TherapyState.PLANNED,
@@ -54,5 +63,5 @@ then
         setTherapyState(TherapyState.CANCELED);
     }
     result.addFact("Emergency Intervention Required for patient: " + $patient.getIme());
-    System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visoke temperature od " + $temperature + ". Operacija je otkazana.");
+    System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visokog pulsa. Operacija je otkazana.");
 end

@@ -1,17 +1,23 @@
 package com.ftn.sbnz.service.tests;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.kie.api.KieServices;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.KieSessionConfiguration;
+import org.kie.api.runtime.conf.ClockTypeOption;
+import org.kie.api.time.SessionPseudoClock;
 
+import com.ftn.sbnz.model.events.PulseEvent;
 import com.ftn.sbnz.model.events.TemperatureEvent;
 import com.ftn.sbnz.model.models.Result;
 import com.ftn.sbnz.model.models.examinations.Examination;
@@ -23,61 +29,118 @@ import com.ftn.sbnz.model.models.users.Patient;
 public class CepTests {
     private static KieSession kSession;
     private static Result result;
+    private static SessionPseudoClock clock;
 
     @BeforeAll
     public static void setup() {
         KieServices ks = KieServices.Factory.get();
         KieContainer kContainer = ks.getKieClasspathContainer();
-        kSession = kContainer.newKieSession("cepKsession");
+        KieSessionConfiguration config = ks.newKieSessionConfiguration();
+        config.setOption(ClockTypeOption.get("pseudo"));
+        kSession = kContainer.newKieSession("cepKsession", config);
         result = new Result();
         kSession.setGlobal("result", result);
+        clock = kSession.getSessionClock();
     }
 
     @Test
-    public void testTemperatureWarningRule() {
+    public void testGenerateTemperatureWarning() {
         Patient patient = new Patient();
         patient.setId(1);
         patient.setIme("John");
         patient.setPrezime("Doe");
 
-        Date now = new Date();
-        Date fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000);
-        Date tenHoursAgo = new Date(now.getTime() - 10 * 60 * 60 * 1000);
-
-        TemperatureEvent temp1 = new TemperatureEvent(patient, 39.0, now);
-        TemperatureEvent temp2 = new TemperatureEvent(patient, 39.2, fiveHoursAgo);
-        TemperatureEvent temp3 = new TemperatureEvent(patient, 38.8, tenHoursAgo);
-
+        long now = clock.getCurrentTime();
+        TemperatureEvent temp1 = new TemperatureEvent(patient, 39.0, new Date(now));
         kSession.insert(patient);
         kSession.insert(temp1);
+        kSession.fireAllRules();
+
+        clock.advanceTime(5, TimeUnit.HOURS);
+        TemperatureEvent temp2 = new TemperatureEvent(patient, 39.2, new Date(clock.getCurrentTime()));
         kSession.insert(temp2);
+        kSession.fireAllRules();
+
+        clock.advanceTime(5, TimeUnit.HOURS);
+        TemperatureEvent temp3 = new TemperatureEvent(patient, 38.8, new Date(clock.getCurrentTime()));
         kSession.insert(temp3);
+        kSession.fireAllRules();
 
+        clock.advanceTime(1, TimeUnit.SECONDS);
         int firedRules = kSession.fireAllRules();
-        assertTrue(firedRules > 0, "Expected at least one rule to be fired.");
+        System.out.println("Number of fired rules: " + firedRules);
 
-        // Provera rezultata
         assertTrue(result.getFacts().contains("Temperature Warning Generated for patient: John"), "Expected Temperature Warning to be generated.");
     }
 
     @Test
-    public void testTemperatureWarningAndEmergencyInterventionRule() {
+    public void testCheckPulseAfterTemperatureWarning() {
         Patient patient = new Patient();
         patient.setId(1);
         patient.setIme("John");
         patient.setPrezime("Doe");
 
-        Date now = new Date();
-        Date oneHourAgo = new Date(now.getTime() - 1 * 60 * 60 * 1000);
-        Date twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-        Date threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-        Date fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+        long now = clock.getCurrentTime();
+        TemperatureEvent temp1 = new TemperatureEvent(patient, 39.0, new Date(now));
+        kSession.insert(patient);
+        kSession.insert(temp1);
+        kSession.fireAllRules();
 
-        TemperatureEvent temp1 = new TemperatureEvent(patient, 39.5, now);
-        TemperatureEvent temp2 = new TemperatureEvent(patient, 39.7, oneHourAgo);
-        TemperatureEvent temp3 = new TemperatureEvent(patient, 39.6, twoHoursAgo);
-        TemperatureEvent temp4 = new TemperatureEvent(patient, 39.0, threeHoursAgo);
-        TemperatureEvent temp5 = new TemperatureEvent(patient, 39.0, fiveHoursAgo);
+        clock.advanceTime(1, TimeUnit.HOURS);
+        TemperatureEvent temp2 = new TemperatureEvent(patient, 39.1, new Date(clock.getCurrentTime()));
+        kSession.insert(temp2);
+        kSession.fireAllRules();
+
+        clock.advanceTime(2, TimeUnit.HOURS);
+        PulseEvent pulse1 = new PulseEvent(patient, 110, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse1);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.HOURS);
+        PulseEvent pulse2 = new PulseEvent(patient, 105, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse2);
+        kSession.fireAllRules();
+
+        clock.advanceTime(2, TimeUnit.HOURS);
+        PulseEvent pulse3 = new PulseEvent(patient, 108, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse3);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.SECONDS);
+        int firedRules = kSession.fireAllRules();
+        System.out.println("Number of fired rules: " + firedRules);
+
+        assertTrue(result.getFacts().contains("Temperature Warning Generated for patient: John"), "Expected Temperature Warning to be generated.");
+        assertTrue(result.getFacts().contains("Pulse Warning Generated for patient: John"), "Expected Pulse Warning to be generated.");
+    }
+
+    @Test
+    public void testGenerateEmergencyIntervention() {
+        Patient patient = new Patient();
+        patient.setId(1);
+        patient.setIme("John");
+        patient.setPrezime("Doe");
+
+        long now = clock.getCurrentTime();
+        TemperatureEvent temp1 = new TemperatureEvent(patient, 39.0, new Date(now));
+        kSession.insert(patient);
+        kSession.insert(temp1);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.HOURS);
+        TemperatureEvent temp2 = new TemperatureEvent(patient, 39.1, new Date(clock.getCurrentTime()));
+        kSession.insert(temp2);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.HOURS);
+        PulseEvent pulse1 = new PulseEvent(patient, 110, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse1);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.HOURS);
+        PulseEvent pulse2 = new PulseEvent(patient, 105, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse2);
+        kSession.fireAllRules();
 
         Operation operation = new Operation();
         operation.setTherapyState(TherapyState.PLANNED);
@@ -92,20 +155,21 @@ public class CepTests {
 
         patient.setExaminations(examinations);
 
-        kSession.insert(patient);
-        kSession.insert(temp1);
-        kSession.insert(temp2);
-        kSession.insert(temp3);
-        kSession.insert(temp4);
-        kSession.insert(temp5);
+        kSession.insert(operation);
+        kSession.insert(examination);
 
+        clock.advanceTime(1, TimeUnit.HOURS);
+        PulseEvent pulse3 = new PulseEvent(patient, 108, new Date(clock.getCurrentTime()));
+        kSession.insert(pulse3);
+        kSession.fireAllRules();
+
+        clock.advanceTime(1, TimeUnit.SECONDS);
         int firedRules = kSession.fireAllRules();
-        assertTrue(firedRules == 0, "Expected at least one rule to be fired.");
-
-        // Provera rezultata za alarm
-        firedRules += kSession.fireAllRules();
+        System.out.println("Number of fired rules: " + firedRules);
 
         assertTrue(result.getFacts().contains("Temperature Warning Generated for patient: John"), "Expected Temperature Warning to be generated.");
-
+        assertTrue(result.getFacts().contains("Pulse Warning Generated for patient: John"), "Expected Pulse Warning to be generated.");
+        assertTrue(result.getFacts().contains("Emergency Intervention Required for patient: John"), "Expected Emergency Intervention to be generated.");
+        assertEquals(TherapyState.CANCELED, operation.getTherapyState(), "Expected operation to be canceled.");
     }
 }

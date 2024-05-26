@@ -14,5 +14,7 @@
     <kbase name="forward2Kbase" packages="simple">
         <ksession name="forward2Ksession"/>
     </kbase>
-
+    <kbase name="temp" eventProcessingMode="stream" packages="template">
+        <ksession name="templateKsession" clockType="pseudo"/>
+    </kbase>
 </kmodule>

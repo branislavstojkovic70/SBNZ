@@ -4,8 +4,11 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import org.kie.api.definition.type.Role;
+import org.kie.api.definition.type.Role.Type;
 
 @Entity
+@Role(Type.EVENT)
 public class Symptom {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

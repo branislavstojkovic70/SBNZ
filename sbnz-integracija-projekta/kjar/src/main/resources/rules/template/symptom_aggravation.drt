@@ -1,0 +1,45 @@
+template header 
+aggravationThreshold
+symptomIntensityThreshold
+timeWindow
+
+package template;
+
+import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.examinations.Symptom;
+import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
+import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.model.models.examinations.Examination;
+import java.time.LocalDateTime;
+
+global java.util.List alarms;
+
+template "symptom-aggravation-rules"
+
+rule "Detect Symptom Aggravation for @{row.rowNumber}"
+when
+    $patient : Patient(examinations != null)
+    $examination : Examination(
+        symptoms.size() > 0
+    ) from $patient.getExaminations()
+    $symptom : Symptom(
+            symptomFrequency == SymptomFrequency.CONSTANT
+        ) from $examination.getSymptoms()
+    Number(intValue >= @{aggravationThreshold}) from accumulate(
+        $e : Symptom(
+            intensity >= @{symptomIntensityThreshold},
+            symptomFrequency == SymptomFrequency.CONSTANT
+        ) over window:time(@{timeWindow}),
+        count($e)
+    )
+then
+    Alarm alarm = new Alarm();
+    alarm.setPatient($patient);
+    alarm.setDescription("Symptom aggravation detected for patient: " + $patient.getIme());
+    alarm.setTime(LocalDateTime.now());
+    alarms.add(alarm);
+    insert(alarm);
+    System.out.println("Symptom aggravation detected for patient: " + $patient.getIme());
+end
+
+end template

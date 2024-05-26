@@ -1,0 +1,37 @@
+template header
+saturationThreshold
+eventCountThreshold
+timeWindow
+
+package template;
+
+import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.model.events.OxygenSaturationEvent;
+import java.time.LocalDateTime;
+
+global java.util.List<Alarm> alarms;
+
+template "hypoxia-monitoring-rules"
+
+rule "Detect Hypoxia for @{row.rowNumber}"
+when
+    $patient : Patient()
+    Number(intValue >= @{eventCountThreshold}) from accumulate(
+        $event : OxygenSaturationEvent(
+            saturation < @{saturationThreshold},
+            patient.getId() == $patient.getId()
+        ) over window:time(@{timeWindow}),
+        count($event)
+    )
+then
+    Alarm alarm = new Alarm();
+    alarm.setPatient($patient);
+    alarm.setDescription("Hypoxia detected for patient: " + $patient.getIme());
+    alarm.setTime(LocalDateTime.now());
+    alarms.add(alarm);
+    insert(alarm);
+    System.out.println("Hypoxia detected for patient: " + $patient.getIme());
+end
+
+end template
