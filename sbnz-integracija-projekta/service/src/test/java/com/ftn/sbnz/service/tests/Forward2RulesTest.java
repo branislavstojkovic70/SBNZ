@@ -15,11 +15,9 @@ import com.ftn.sbnz.service.ServiceApplication;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.kie.api.KieServices;
 
 import java.util.HashSet;
@@ -31,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = ServiceApplication.class)
 public class Forward2RulesTest {
     private static KieSession kSession;
@@ -42,6 +39,7 @@ public class Forward2RulesTest {
         KieContainer kContainer = ks.getKieClasspathContainer();
         kSession = kContainer.newKieSession("forward2Ksession");
     }
+
     @Test
     public void testCreateOperatedPatient() {
         Patient patient = new Patient();
@@ -175,7 +173,6 @@ public class Forward2RulesTest {
 
     @Test
     public void testRecommendLifestyleChangesAndPalliativeCare() {
-        // Kreiranje pacijenta sa plućnom hipertenzijom
         Patient patient = new Patient();
         Operation operation = new Operation();
         OperatedPatient operatedPatient = new OperatedPatient();

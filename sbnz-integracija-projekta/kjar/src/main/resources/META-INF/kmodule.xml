@@ -17,4 +17,7 @@
     <kbase name="temp" eventProcessingMode="stream" packages="template">
         <ksession name="templateKsession" clockType="pseudo"/>
     </kbase>
+    <kbase name="report" packages="reports">
+        <ksession name="reportsKsession"/>
+    </kbase>
 </kmodule>

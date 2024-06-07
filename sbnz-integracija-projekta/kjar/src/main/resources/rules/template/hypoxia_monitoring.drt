@@ -25,13 +25,11 @@ when
         count($event)
     )
 then
-    Alarm alarm = new Alarm();
-    alarm.setPatient($patient);
-    alarm.setDescription("Hypoxia detected for patient: " + $patient.getIme());
-    alarm.setTime(LocalDateTime.now());
+    Alarm alarm = new Alarm(null, $patient, "Hypoxia detected for patient: " + $patient.getIme(), LocalDateTime.now());
     alarms.add(alarm);
     insert(alarm);
     System.out.println("Hypoxia detected for patient: " + $patient.getIme());
+    System.out.println("Okinulo se template pravilo 1");
 end
 
 end template

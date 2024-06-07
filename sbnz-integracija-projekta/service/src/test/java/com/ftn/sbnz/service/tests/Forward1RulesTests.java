@@ -17,11 +17,9 @@ import com.ftn.sbnz.service.ServiceApplication;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.kie.api.KieServices;
 
 import java.time.LocalDateTime;
@@ -33,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = ServiceApplication.class)
 public class Forward1RulesTests {
     private static KieSession kSession;

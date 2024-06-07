@@ -33,13 +33,11 @@ when
         count($e)
     )
 then
-    Alarm alarm = new Alarm();
-    alarm.setPatient($patient);
-    alarm.setDescription("Symptom aggravation detected for patient: " + $patient.getIme());
-    alarm.setTime(LocalDateTime.now());
+    Alarm alarm = new Alarm(null, $patient, "Symptom aggravation detected for patient: " + $patient.getIme(), LocalDateTime.now());
     alarms.add(alarm);
     insert(alarm);
     System.out.println("Symptom aggravation detected for patient: " + $patient.getIme());
+    System.out.println("Okinulo se template pravilo 2");
 end
 
 end template

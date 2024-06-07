@@ -17,6 +17,7 @@ import com.ftn.sbnz.model.models.therapy.TherapyType;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.HashSet;
 
 global Set<String> criticalSymptoms;
 
@@ -29,22 +30,21 @@ when
         count($symptom)
     )
 then
-    Examination ctExamination = new Examination();
-    ctExamination.setDateTime(LocalDateTime.now());
-    ctExamination.setExaminationState(ExaminationState.SCHEDULED);
-    ctExamination.setNote("Scheduled CT scan based on symptoms");
-    ctExamination.setSymptoms($examination.getSymptoms());
+    Examination ctExamination = new Examination(null, LocalDateTime.now(), null, "Scheduled CT scan based on symptoms",
+            ExaminationState.SCHEDULED, new HashSet<ExaminationType>(), $examination.getSymptoms(),
+            null, null);
+    Examination rtgExamination = new Examination(null, LocalDateTime.now(), null, "Scheduled RTG scan based on symptoms",
+            ExaminationState.SCHEDULED, new HashSet<ExaminationType>(), $examination.getSymptoms(),
+            null, null);
 
-    Examination rtgExamination = new Examination();
-    rtgExamination.setDateTime(LocalDateTime.now());
-    rtgExamination.setExaminationState(ExaminationState.SCHEDULED);
-    rtgExamination.setNote("Scheduled RTG scan based on symptoms");
-    rtgExamination.setSymptoms($examination.getSymptoms());
+    HashSet<Examination> updatedExaminations = new HashSet<Examination>($examinations);
+    updatedExaminations.add(ctExamination);
+    updatedExaminations.add(rtgExamination);
 
-    $patient.getExaminations().add(ctExamination);
-    $patient.getExaminations().add(rtgExamination);
-
-    update($patient);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
+    System.out.println("Okinulo se forward 1 pravilo 1");
 end
 
 rule "Schedule Biopsy if CT and RTG results are positive"
@@ -72,21 +72,23 @@ when
         description == "positive for changes"
     ) from $rtgType.getTestResults()
 then
-    Examination biopsyExamination = new Examination();
-    biopsyExamination.setDateTime(LocalDateTime.now().plusDays(1));
-    biopsyExamination.setExaminationState(ExaminationState.SCHEDULED);
-    biopsyExamination.setNote("Scheduled biopsy based on positive CT and RTG results");
+    Examination biopsyExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
+            "Scheduled biopsy based on positive CT and RTG results", ExaminationState.SCHEDULED, 
+            new HashSet<ExaminationType>(), null,
+            null, null);
 
     if ($ctExamination.getExaminationTypes().size() > 2 && $rtgExamination.getExaminationTypes().size() > 2) {
         biopsyExamination.setNote(biopsyExamination.getNote() + " - Core Needle Biopsy");
     } else {
         biopsyExamination.setNote(biopsyExamination.getNote() + " - Fine Needle Aspiration Biopsy");
     }
-
-    $patient.getExaminations().add(biopsyExamination);
-    update($patient);
-
+    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
+    updatedExaminations.add(biopsyExamination);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
     System.out.println("Biopsy scheduled for patient based on positive CT and RTG results.");
+    System.out.println("Okinulo se forward 1 pravilo 2");
 end
 
 rule "Schedule follow-up tests after malignant biopsy"
@@ -112,28 +114,27 @@ when
         Examination(note == "Scheduled Spiroergometrija") from $examinations
     )
 then
-    Examination spirometryExamination = new Examination();
-    spirometryExamination.setDateTime(LocalDateTime.now().plusDays(1));
-    spirometryExamination.setExaminationState(ExaminationState.SCHEDULED);
-    spirometryExamination.setNote("Scheduled Spirometrija");
-
-    Examination dlcoExamination = new Examination();
-    dlcoExamination.setDateTime(LocalDateTime.now().plusDays(1));
-    dlcoExamination.setExaminationState(ExaminationState.SCHEDULED);
-    dlcoExamination.setNote("Scheduled Test difuznog kapaciteta pluća (DLCO)");
-
-    Examination spiroergometryExamination = new Examination();
-    spiroergometryExamination.setDateTime(LocalDateTime.now().plusDays(1));
-    spiroergometryExamination.setExaminationState(ExaminationState.SCHEDULED);
-    spiroergometryExamination.setNote("Scheduled Spiroergometrija");
-
-    $patient.getExaminations().add(spirometryExamination);
-    $patient.getExaminations().add(dlcoExamination);
-    $patient.getExaminations().add(spiroergometryExamination);
-
-    update($patient);
-
+    Examination spirometryExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
+            "Scheduled Spirometrija", ExaminationState.SCHEDULED, 
+            new HashSet<ExaminationType>(), null,
+            null, null);
+    Examination dlcoExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
+            "Scheduled Test difuznog kapaciteta pluća (DLCO)", ExaminationState.SCHEDULED, 
+            new HashSet<ExaminationType>(), null,
+            null, null);
+    Examination spiroergometryExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
+            "Scheduled Spiroergometrija", ExaminationState.SCHEDULED, 
+            new HashSet<ExaminationType>(), null,
+            null, null);
+    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
+    updatedExaminations.add(spirometryExamination);
+    updatedExaminations.add(dlcoExamination);
+    updatedExaminations.add(spiroergometryExamination);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
     System.out.println("Scheduled follow-up tests for patient after malignant biopsy.");
+    System.out.println("Okinulo se forward 1 pravilo 3");
 end
 
 
@@ -174,16 +175,18 @@ when
         ) from $examinations
     )
 then
-    Examination geneticTestExamination = new Examination();
-    geneticTestExamination.setDateTime(LocalDateTime.now().plusDays(1));
-    geneticTestExamination.setExaminationState(ExaminationState.SCHEDULED);
-    geneticTestExamination.setNote("Scheduled Genetic Test");
-
-    $patient.getExaminations().add(geneticTestExamination);
-
-    update($patient);
+    Examination geneticTestExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
+            "Scheduled Genetic Test", ExaminationState.SCHEDULED, 
+            new HashSet<ExaminationType>(), null,
+            null, null);
+    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
+    updatedExaminations.add(geneticTestExamination);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
 
     System.out.println("Scheduled genetic test for patient due to bad follow-up test results.");
+    System.out.println("Okinulo se forward 1 pravilo 4");
 end
 
 rule "Determine cancer stage and create diagnosis"
@@ -203,21 +206,20 @@ when
     $spiroergometryResult: TestResult((description == "VO2 max" && value < 80.0) || 
                                       (description == "Relative VO2 max" && value < 80.0)) from $examinationType.getTestResults()
 then
-    TNMKlassification tnm = new TNMKlassification();
-    tnm.settKlassification(2.0); 
-    tnm.setnKlassification(1.0);
-    tnm.setmKlassification(0.0);
+    TNMKlassification tnm = new TNMKlassification(null, 2.0, 1.0, 0.0, LocalDateTime.now());
 
-    Diagnosis diagnosis = new Diagnosis();
-    diagnosis.setTumorDetected(true);
-    diagnosis.setTnmKlassification(tnm);
-    TumorType tumorType = determineTumorType($examination);
-    diagnosis.setTumorType(tumorType);
-    $examination.setDiagnosis(diagnosis);
-    update($examination);
-    update($patient);
-
+    Diagnosis diagnosis = new Diagnosis(null, true, determineTumorType($examination), tnm);
+    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
+    updatedExaminations.remove($examination);
+    modify($examination) {
+        setDiagnosis(diagnosis);
+    }
+    updatedExaminations.add($examination);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
     System.out.println("Diagnosis created for patient based on TNM classification and test results.");
+    System.out.println("Okinulo se forward 1 pravilo 5");
 end
 
 function TumorType determineTumorType(Examination examination) {
@@ -240,18 +242,25 @@ when
     $diagnosis: Diagnosis(tnmKlassification != null) from $examination.getDiagnosis()
     $tnm: TNMKlassification(tKlassification > 0.0) from $diagnosis.getTnmKlassification()
 then
-    Therapy therapy = new Therapy();
-    therapy.setStrDateTime(LocalDateTime.now());
-    therapy.setEnDateTime(LocalDateTime.now().plusMonths(6));
-    therapy.setTherapyState(TherapyState.PLANNED);
+    Therapy therapy = createTherapyBasedOnTNM($tnm);
+    modify($examination){
+        setTherapy(therapy);
+    }
+    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
+    System.out.println("Okinulo se forward 1 pravilo 6");
+end
 
-    if ($tnm.gettKlassification() <= 2 && $tnm.getnKlassification() == 0 && $tnm.getmKlassification() == 0) {
+function Therapy createTherapyBasedOnTNM(TNMKlassification tnm) {
+    Therapy therapy = new Therapy(null, LocalDateTime.now(), LocalDateTime.now().plusMonths(6), "",
+            TherapyType.PALLIATIVE_CARE, TherapyState.PLANNED);
+
+    if (tnm.gettKlassification() <= 2 && tnm.getnKlassification() == 0 && tnm.getmKlassification() == 0) {
         therapy.setTherapyType(TherapyType.OPERATION);
         therapy.setDescription("Planned surgery based on TNM classification");
-    } else if ($tnm.gettKlassification() <= 3 && $tnm.getnKlassification() <= 1 && $tnm.getmKlassification() == 0) {
+    } else if (tnm.gettKlassification() <= 3 && tnm.getnKlassification() <= 1 && tnm.getmKlassification() == 0) {
         therapy.setTherapyType(TherapyType.RADIOTHERAPY);
         therapy.setDescription("Planned radiotherapy based on TNM classification");
-    } else if ($tnm.gettKlassification() <= 4 && $tnm.getnKlassification() <= 2 && $tnm.getmKlassification() == 0) {
+    } else if (tnm.gettKlassification() <= 4 && tnm.getnKlassification() <= 2 && tnm.getmKlassification() == 0) {
         therapy.setTherapyType(TherapyType.CHEMOTHERAPY);
         therapy.setDescription("Planned chemotherapy based on TNM classification");
     } else {
@@ -259,8 +268,5 @@ then
         therapy.setDescription("Planned palliative care based on TNM classification");
     }
 
-    $examination.setTherapy(therapy);
-    update($examination);
-
-    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
-end
+    return therapy;
+}

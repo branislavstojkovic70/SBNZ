@@ -4,16 +4,12 @@ import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.users.OperatedPatient;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import com.ftn.sbnz.model.models.examinations.ExaminationState;
-import com.ftn.sbnz.model.models.examinations.Symptom;
-import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
-import com.ftn.sbnz.model.models.examinations.ExaminationType;
-import com.ftn.sbnz.model.models.examinations.TumorType;
 import com.ftn.sbnz.model.models.examinations.TestResult;
-import com.ftn.sbnz.model.models.examinations.Diagnosis;
-import com.ftn.sbnz.model.models.examinations.TNMKlassification;
-import com.ftn.sbnz.model.models.therapy.Therapy;
+import com.ftn.sbnz.model.models.examinations.ExaminationType;
 import com.ftn.sbnz.model.models.therapy.Operation;
+import com.ftn.sbnz.model.models.therapy.OperationType;
 import com.ftn.sbnz.model.models.therapy.PaliativeCare;
+import com.ftn.sbnz.model.models.therapy.Therapy;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
 
@@ -26,11 +22,10 @@ when
     $examination : Examination(examinationState == ExaminationState.DONE, therapy != null) from $examinations
     $operation : Operation() from $examination.getTherapy()
 then
-    OperatedPatient operatedPatient = new OperatedPatient();
-    operatedPatient.setPatient($patient);
-    operatedPatient.setOperation($operation);
+    OperatedPatient operatedPatient = new OperatedPatient($patient, $operation, false, false, "OperatedPatient created for patient: " + $patient.getId(), null);
     insert(operatedPatient);
     System.out.println("OperatedPatient created for patient: " + $patient.getId());
+    System.out.println("Okinulo se forward 2 pravilo 1");
 end
 
 rule "Check for resistance in pulmonary blood vessels"
@@ -44,35 +39,39 @@ when
     $spiroergometryType : ExaminationType() from $spiroergometry.getExaminationTypes()
     $spiroergometryResult : TestResult(description == "VO2 max", value < 80.0) from $spiroergometryType.getTestResults()
 then
-    $operatedPatient.setPulmonaryResistance(true);
-    update($operatedPatient);
+    modify($operatedPatient) {
+        setPulmonaryResistance(true);
+    }
     System.out.println("Resistance in pulmonary blood vessels detected for patient: " + $patient.getId());
+    System.out.println("Okinulo se forward 2 pravilo 2");
 end
 
 rule "Diagnose pulmonary hypertension"
 when
     $operatedPatient : OperatedPatient(pulmonaryResistance == true)
 then
-    $operatedPatient.setPulmonaryHypertension(true);
-    update($operatedPatient);
+    modify($operatedPatient) {
+        setPulmonaryHypertension(true);
+    }
     System.out.println("Pulmonary hypertension diagnosed for patient: " + $operatedPatient.getPatient().getId());
+    System.out.println("Okinulo se forward 2 pravilo 3");
 end
 
 rule "Recommend lifestyle changes and palliative care"
 when
     $operatedPatient : OperatedPatient(pulmonaryHypertension == true)
 then
-    $operatedPatient.setNote("Recommend lifestyle changes for patient: " + $operatedPatient.getPatient().getId());
-    PaliativeCare therapy = new PaliativeCare();
-    therapy.setStrDateTime(LocalDateTime.now());
-    therapy.setEnDateTime(LocalDateTime.now().plusMonths(6));
-    therapy.setTherapyType(TherapyType.PALLIATIVE_CARE);
-    therapy.setTherapyState(TherapyState.DURING);
-    therapy.setDescription("Recommended palliative care for pulmonary hypertension.");
-    therapy.setApplicationMethod("Medication");
-    $operatedPatient.setFurtherTherapy(therapy);
-    update($operatedPatient);
+    PaliativeCare therapy = new PaliativeCare(null, LocalDateTime.now(), LocalDateTime.now().plusMonths(6), 
+            "Recommended palliative care for pulmonary hypertension.", TherapyType.PALLIATIVE_CARE,
+            TherapyState.DURING, "Recommended palliative care for pulmonary hypertension.", 
+            "Medication");
+    modify($operatedPatient) {
+        setNote("Recommend lifestyle changes for patient: " + $operatedPatient.getPatient().getId()),
+        setFurtherTherapy(therapy)
+    };
+    System.out.println("Okinulo se forward 2 pravilo 4");
 end
+
 
 rule "Recommend heart and lung transplant"
 when
@@ -81,13 +80,12 @@ when
     $examination : Examination(therapy != null) from $examinations
     $therapy : Therapy(therapyState == TherapyState.FINISHED, therapyType == TherapyType.PALLIATIVE_CARE) from $examination.getTherapy()
 then
-    Operation transplantTherapy = new Operation();
-    transplantTherapy.setStrDateTime(LocalDateTime.now());
-    transplantTherapy.setEnDateTime(LocalDateTime.now().plusYears(1));
-    transplantTherapy.setTherapyType(TherapyType.OPERATION);
-    transplantTherapy.setTherapyState(TherapyState.PLANNED);
-    transplantTherapy.setDescription("Recommended heart and lung transplant for advanced pulmonary hypertension.");
-    $operatedPatient.setFurtherTherapy(transplantTherapy);
-
-    update($operatedPatient);
+    Operation transplantTherapy = new Operation(null, LocalDateTime.now(), LocalDateTime.now().plusYears(1), 
+        "Recommended heart and lung transplant for advanced pulmonary hypertension.", TherapyType.OPERATION, 
+        TherapyState.PLANNED, "Recommended heart and lung transplant for advanced pulmonary hypertension.", 
+        LocalDateTime.now().plusYears(1), "", OperationType.SEGMENTECTOMY);
+    modify($operatedPatient){
+        setFurtherTherapy(transplantTherapy);
+    }
+    System.out.println("Okinulo se forward 2 pravilo 5");
 end

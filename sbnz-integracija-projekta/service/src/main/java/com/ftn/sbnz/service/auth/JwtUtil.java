@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import com.ftn.sbnz.model.models.users.User;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtUtil {
@@ -26,9 +25,10 @@ public class JwtUtil {
         Claims claims = Jwts.claims().setSubject(user.getEmail());
         claims.put("firstName", user.getIme());
         claims.put("lastName", user.getPrezime());
-        claims.put("role", user.getRole().name()); // Storing the role name as a string
+        claims.put("role", user.getRole().name());
+        claims.put("userId", user.getId()); 
         Date tokenCreateTime = new Date();
-        Date tokenValidity = new Date(tokenCreateTime.getTime() + TimeUnit.MINUTES.toMillis(accessTokenValidity));
+        Date tokenValidity = new Date(tokenCreateTime.getTime() + accessTokenValidity);
         return Jwts.builder()
                 .setClaims(claims)
                 .setExpiration(tokenValidity)
@@ -36,7 +36,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    private Claims parseJwtClaims(String token) {
+    public Claims parseJwtClaims(String token) {
         return jwtParser.parseClaimsJws(token).getBody();
     }
 
@@ -76,4 +76,7 @@ public class JwtUtil {
         return claims.getSubject();
     }
 
+    public String getRole(Claims claims) {
+        return claims.get("role", String.class);
+    }
 }

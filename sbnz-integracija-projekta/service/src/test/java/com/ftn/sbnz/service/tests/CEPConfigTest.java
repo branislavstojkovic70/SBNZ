@@ -43,17 +43,17 @@ public class CEPConfigTest {
             "password",
             LocalDateTime.now(),
             Role.Patient,
-            185,    // bloodPressure
-            70,     // puls
-            98,     // saturationO2
-            36.5,   // bodyTemperature
-            new HashSet<>() // examinations
+            185, 
+            70,
+            98,
+            36.5,
+            new HashSet<>()
         );
 
         kSession.insert(patient);
         int firedRules = kSession.fireAllRules();
 
-        assertEquals(1, firedRules); // Assuming only one rule will be triggered
+        assertEquals(1, firedRules);
     }
 
     @Test
@@ -66,17 +66,17 @@ public class CEPConfigTest {
             "password",
             LocalDateTime.now(),
             Role.Patient,
-            120,    // bloodPressure
-            130,    // puls
-            98,     // saturationO2
-            36.5,   // bodyTemperature
-            new HashSet<>() // examinations
+            120,
+            130,
+            98,
+            36.5,
+            new HashSet<>()
         );
 
         kSession.insert(patient);
         int firedRules = kSession.fireAllRules();
 
-        assertEquals(1, firedRules); // Assuming only one rule will be triggered
+        assertEquals(1, firedRules);
     }
 
     @Test
@@ -89,17 +89,17 @@ public class CEPConfigTest {
             "password",
             LocalDateTime.now(),
             Role.Patient,
-            120,    // bloodPressure
-            70,     // puls
-            85,     // saturationO2
-            36.5,   // bodyTemperature
-            new HashSet<>() // examinations
+            120,
+            70,
+            85,
+            36.5,
+            new HashSet<>()
         );
 
         kSession.insert(patient);
         int firedRules = kSession.fireAllRules();
 
-        assertEquals(1, firedRules); // Assuming only one rule will be triggered
+        assertEquals(1, firedRules);
     }
 
     @Test
@@ -112,17 +112,17 @@ public class CEPConfigTest {
             "password",
             LocalDateTime.now(),
             Role.Patient,
-            120,    // bloodPressure
-            70,     // puls
-            98,     // saturationO2
-            39.5,   // bodyTemperature
-            new HashSet<>() // examinations
+            120,
+            70,
+            98,
+            39.5,
+            new HashSet<>()
         );
 
         kSession.insert(patient);
         int firedRules = kSession.fireAllRules();
 
-        assertEquals(1, firedRules); // Assuming only one rule will be triggered
+        assertEquals(1, firedRules);
     }
     
 }

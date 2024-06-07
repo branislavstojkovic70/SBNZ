@@ -29,6 +29,7 @@ then
     insert(tempAlarm);
     result.addFact("Temperature Warning Generated for patient: " + $patient.getIme());
     System.out.println("Kreirano je upozorenje za visoku temperaturu za pacijenta: " + $patient.getIme());
+    System.out.println("Okinulo se cep pravilo 1");
 end
 
 rule "Check Pulse After Temperature Warning"
@@ -47,6 +48,7 @@ then
     insert(pulseAlarm);
     result.addFact("Pulse Warning Generated for patient: " + $patient.getIme());
     System.out.println("Kreirano je upozorenje za visoki puls za pacijenta: " + $patient.getIme());
+    System.out.println("Okinulo se cep pravilo 2");
 end
 
 rule "Generate Emergency Intervention"
@@ -64,4 +66,5 @@ then
     }
     result.addFact("Emergency Intervention Required for patient: " + $patient.getIme());
     System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visokog pulsa. Operacija je otkazana.");
+    System.out.println("Okinulo se cep pravilo 3");
 end

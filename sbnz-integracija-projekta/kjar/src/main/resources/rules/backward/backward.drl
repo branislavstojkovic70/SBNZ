@@ -40,6 +40,7 @@ when
 then
     insert(new Alarm(null, $child, "Parent has tumor", LocalDateTime.now()));
     result.addFact("Warning: " + $child.getIme() + " should schedule a screening due to parent's tumor diagnosis");
+    System.out.println("Okinulo se backward pravilo 1");
 end
 
 rule "Schedule examination due to tumor alarm"
@@ -52,4 +53,5 @@ then
     insert(newExamination);
     System.out.println("Scheduled a new examination for patient: " + $patient.getIme() + " due to parental tumor diagnosis.");
     result.addFact("Scheduled examination for patient: " + $patient.getIme() + " due to parental tumor diagnosis.");
+    System.out.println("Okinulo se backward pravilo 2");
 end

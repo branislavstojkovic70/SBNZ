@@ -1,0 +1,9 @@
+package reports;
+
+import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.model.models.therapy.Therapy;
+
+query "HighRiskPatientsWithMultipleFactors"
+    $patient : Patient(bloodPressure > 140, puls > 100, saturationO2 < 90)
+end

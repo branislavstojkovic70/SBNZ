@@ -43,7 +43,7 @@ public class Operation extends Therapy{
             TherapyType therapyType, TherapyState therapyState, String description2, LocalDateTime scheduledFor,
             String outcome, OperationType operationType) {
         super(id, strDateTime, enDateTime, description, therapyType, therapyState);
-        description = description2;
+        this.description = description2;
         this.scheduledFor = scheduledFor;
         this.outcome = outcome;
         this.operationType = operationType;

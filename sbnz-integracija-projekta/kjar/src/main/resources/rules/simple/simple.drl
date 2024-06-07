@@ -27,6 +27,7 @@ when
     $patient : Patient(bloodPressure > 180 || bloodPressure < 90)
 then
     System.out.println("Alert: Critical change in blood pressure detected. Value: " + $patient.getBloodPressure());
+    System.out.println("Okinulo se simple pravilo 1");
 end
 
 rule "Critical Pulse Alert"
@@ -34,6 +35,7 @@ when
     $patient : Patient(puls > 120 || puls < 50)
 then
     System.out.println("Alert: Critical change in pulse detected. Value: " + $patient.getPuls());
+    System.out.println("Okinulo se simple pravilo 2");
 end
 
 rule "Critical Oxygen Saturation Alert"
@@ -41,6 +43,7 @@ when
     $patient : Patient(saturationO2 < 90)
 then
     System.out.println("Alert: Critical change in oxygen saturation detected. Value: " + $patient.getSaturationO2());
+    System.out.println("Okinulo se simple pravilo 3");
 end
 
 rule "Critical Body Temperature Alert"
@@ -48,5 +51,6 @@ when
     $patient : Patient(bodyTemperature > 39 || bodyTemperature < 36)
 then
     System.out.println("Alert: Critical change in body temperature detected. Value: " + $patient.getBodyTemperature());
+    System.out.println("Okinulo se simple pravilo 4");
 end
 

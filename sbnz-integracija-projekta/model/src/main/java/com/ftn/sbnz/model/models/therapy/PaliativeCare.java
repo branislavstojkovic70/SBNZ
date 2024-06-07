@@ -26,7 +26,7 @@ public class PaliativeCare extends Therapy {
     public PaliativeCare(Integer id, LocalDateTime strDateTime, LocalDateTime enDateTime, String description,
             TherapyType therapyType, TherapyState therapyState, String description2, String applicationMethod) {
         super(id, strDateTime, enDateTime, description, therapyType, therapyState);
-        description = description2;
+        this.description = description2;
         this.applicationMethod = applicationMethod;
     }
     public PaliativeCare() {
