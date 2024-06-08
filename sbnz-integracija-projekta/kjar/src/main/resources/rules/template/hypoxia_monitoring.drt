@@ -9,8 +9,10 @@ import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.events.OxygenSaturationEvent;
 import java.time.LocalDateTime;
+import com.ftn.sbnz.service.service.WebSocketService;
 
 global java.util.List<Alarm> alarms;
+global WebSocketService webSocketService;
 
 template "hypoxia-monitoring-rules"
 
@@ -28,6 +30,7 @@ then
     Alarm alarm = new Alarm(null, $patient, "Hypoxia detected for patient: " + $patient.getIme(), LocalDateTime.now());
     alarms.add(alarm);
     insert(alarm);
+    webSocketService.sendAlarm(alarm);
     System.out.println("Hypoxia detected for patient: " + $patient.getIme());
     System.out.println("Okinulo se template pravilo 1");
 end

@@ -45,6 +45,7 @@ public class ExaminationService {
         }
         examination.setDoctor(doctor);
         Examination createdExamination = examinationRepository.save(examination);
+        droolsService.insertAndFireAllRules(patient);
         droolsService.insertAndFireAllRules(examination);
 
         patient.getExaminations().add(createdExamination);

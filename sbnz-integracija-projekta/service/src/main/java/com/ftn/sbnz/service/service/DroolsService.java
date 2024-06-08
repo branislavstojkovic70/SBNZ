@@ -55,6 +55,9 @@ public class DroolsService {
     @Autowired
     private PatientRepository patientRepository;
 
+    @Autowired
+    private WebSocketService webSocketService;
+
     private KieSession bwKsession;
     private KieSession cepKsession;
     private KieSession simpleKsession;
@@ -73,6 +76,7 @@ public class DroolsService {
 
         this.bwKsession = kieContainer.newKieSession("bwKsession");
         this.bwKsession.setGlobal("result", result);
+        this.bwKsession.setGlobal("webSocketService", webSocketService);
 
         this.cepKsession = createCepKsession(kieContainer, kieServices);
 
@@ -90,6 +94,38 @@ public class DroolsService {
         this.template2Ksession = createTemplate2Ksession(kieServices);
 
         this.reportsKsession = kieContainer.newKieSession("reportsKsession");
+    }
+
+    public KieSession getBwKsession() {
+        return bwKsession;
+    }
+
+    public KieSession getCepKsession() {
+        return cepKsession;
+    }
+
+    public KieSession getSimpleKsession() {
+        return simpleKsession;
+    }
+
+    public KieSession getForward1Ksession() {
+        return forward1Ksession;
+    }
+
+    public KieSession getForward2Ksession() {
+        return forward2Ksession;
+    }
+
+    public KieSession getTemplate1Ksession() {
+        return template1Ksession;
+    }
+
+    public KieSession getTemplate2Ksession() {
+        return template2Ksession;
+    }
+
+    public KieSession getReportsKsession() {
+        return reportsKsession;
     }
 
     private KieSession createCepKsession(KieContainer kieContainer, KieServices kieServices) {
@@ -191,7 +227,11 @@ public class DroolsService {
             } else if (obj instanceof Diagnosis) {
                 diagnosisRepository.saveAndFlush((Diagnosis) obj);
             } else if (obj instanceof Therapy) {
-                therapyRepository.saveAndFlush((Therapy) obj);
+                if (therapyRepository.existsById(((Therapy) obj).getId())) {
+                    therapyRepository.save((Therapy) obj);
+                } else {
+                    therapyRepository.saveAndFlush((Therapy) obj);
+                }
             } else if (obj instanceof Alarm) {
                 alarmRepository.saveAndFlush((Alarm) obj);
             } else if (obj instanceof Patient) {

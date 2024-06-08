@@ -14,10 +14,12 @@ import com.ftn.sbnz.model.models.examinations.TestResult;
 import com.ftn.sbnz.model.models.examinations.Diagnosis;
 import com.ftn.sbnz.model.models.examinations.TNMKlassification;
 import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.service.service.WebSocketService;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 
 global Result result;
+global WebSocketService webSocketService;
 
 query childOf(Patient child, Patient parent)
     Fact(child, parent;)
@@ -38,7 +40,9 @@ when
     $examination : Examination(diagnosis.isTumorDetected == true) from $parent.getExaminations()
     childOf($child, $parent;)
 then
-    insert(new Alarm(null, $child, "Parent has tumor", LocalDateTime.now()));
+    Alarm alarm = new Alarm(null, $child, "Parent has tumor", LocalDateTime.now());
+    insert(alarm);
+    webSocketService.sendAlarm(alarm);
     result.addFact("Warning: " + $child.getIme() + " should schedule a screening due to parent's tumor diagnosis");
     System.out.println("Okinulo se backward pravilo 1");
 end

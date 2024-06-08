@@ -18,12 +18,25 @@ import org.kie.api.io.ResourceType;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.time.SessionPseudoClock;
 import org.kie.internal.utils.KieHelper;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.runner.RunWith;
 
 import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.events.OxygenSaturationEvent;
 import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.service.ServiceApplication;
+import com.ftn.sbnz.service.service.WebSocketService;
 
+import static org.mockito.Mockito.*;
+
+@SpringBootTest(classes = ServiceApplication.class)
+@RunWith(SpringRunner.class)
 public class RuleTemplatesTest2 {
+
+    @MockBean
+    private WebSocketService webSocketService;
 
     @Test
     public void testSimpleTemplateWithSpreadsheet2() {
@@ -34,12 +47,13 @@ public class RuleTemplatesTest2 {
             ExternalSpreadsheetCompiler converter = new ExternalSpreadsheetCompiler();
             String drl = converter.compile(data, template, 3, 2);
 
-            System.out.println(drl); 
+            System.out.println(drl);
 
             KieSession ksession = createKieSessionFromDRLWithPseudoClock(drl);
 
             List<Alarm> alarmList = new ArrayList<>();
             ksession.setGlobal("alarms", alarmList);
+            ksession.setGlobal("webSocketService", webSocketService);
 
             SessionPseudoClock clock = ksession.getSessionClock();
 
@@ -75,10 +89,11 @@ public class RuleTemplatesTest2 {
 
             assertTrue("Alarm list should not be empty", !alarmList.isEmpty());
             boolean alarmCreated = alarmList.stream()
-                .anyMatch(alarm -> alarm.getPatient().getId().equals(patient.getId()) &&
-                                   alarm.getDescription().contains("Hypoxia detected for patient: " + patient.getIme()));
+                    .anyMatch(alarm -> alarm.getPatient().getId().equals(patient.getId()) &&
+                            alarm.getDescription().contains("Hypoxia detected for patient: " + patient.getIme()));
 
             assertTrue("Alarm should be created for the patient", alarmCreated);
+            verify(webSocketService, times(3)).sendAlarm(any(Alarm.class));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -89,9 +104,9 @@ public class RuleTemplatesTest2 {
     private KieSession createKieSessionFromDRLWithPseudoClock(String drl) {
         KieHelper kieHelper = new KieHelper();
         kieHelper.addContent(drl, ResourceType.DRL);
-    
+
         Results results = kieHelper.verify();
-    
+
         if (results.hasMessages(Message.Level.WARNING, Message.Level.ERROR)) {
             List<Message> messages = results.getMessages(Message.Level.WARNING, Message.Level.ERROR);
             for (Message message : messages) {

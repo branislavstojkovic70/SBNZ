@@ -4,13 +4,17 @@ import com.ftn.sbnz.model.events.TemperatureEvent;
 import com.ftn.sbnz.model.events.PulseEvent;
 import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.alarms.TemperatureAlarm;
+import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.models.alarms.PulseAlarm;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import com.ftn.sbnz.model.models.therapy.Operation;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
 import com.ftn.sbnz.model.models.Result;
+import com.ftn.sbnz.service.service.WebSocketService
+import java.time.LocalDateTime;
 
+global WebSocketService webSocketService;
 global Result result;
 
 rule "Generate Temperature Warning"
@@ -52,7 +56,7 @@ then
 end
 
 rule "Generate Emergency Intervention"
-no-loop
+    no-loop true
 when
     $pulseAlarm : PulseAlarm($patient: patient)
     $examination : Examination(
@@ -67,4 +71,6 @@ then
     result.addFact("Emergency Intervention Required for patient: " + $patient.getIme());
     System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visokog pulsa. Operacija je otkazana.");
     System.out.println("Okinulo se cep pravilo 3");
+    webSocketService.sendAlarm(new Alarm(null, $patient, "Emergency Intervention Required", LocalDateTime.now()));
 end
+

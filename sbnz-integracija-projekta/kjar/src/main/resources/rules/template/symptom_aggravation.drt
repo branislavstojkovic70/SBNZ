@@ -11,8 +11,10 @@ import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
 import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import java.time.LocalDateTime;
+import com.ftn.sbnz.service.service.WebSocketService;
 
 global java.util.List alarms;
+global WebSocketService webSocketService;
 
 template "symptom-aggravation-rules"
 
@@ -36,6 +38,7 @@ then
     Alarm alarm = new Alarm(null, $patient, "Symptom aggravation detected for patient: " + $patient.getIme(), LocalDateTime.now());
     alarms.add(alarm);
     insert(alarm);
+    webSocketService.sendAlarm(alarm);
     System.out.println("Symptom aggravation detected for patient: " + $patient.getIme());
     System.out.println("Okinulo se template pravilo 2");
 end

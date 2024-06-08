@@ -15,10 +15,12 @@ import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.users.Role;
 import com.ftn.sbnz.service.ServiceApplication;
 
+import com.ftn.sbnz.service.service.WebSocketService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.kie.api.KieServices;
 
@@ -36,13 +38,14 @@ public class Forward1RulesTests {
     private static KieSession kSession;
 
     @BeforeAll
-    public static void setup() {
+    public static void setup(@Autowired WebSocketService webSocketService) {
         KieServices ks = KieServices.Factory.get();
         KieContainer kContainer = ks.getKieClasspathContainer();
         kSession = kContainer.newKieSession("forward1Ksession");
 
         Set<String> criticalSymptoms = new HashSet<>(Arrays.asList("umor", "slabost", "kašalj", "otežano disanje", "bol u grudima", "hemoptiza"));
         kSession.setGlobal("criticalSymptoms", criticalSymptoms);
+        kSession.setGlobal("webSocketService", webSocketService);
     }
 
     @Test
