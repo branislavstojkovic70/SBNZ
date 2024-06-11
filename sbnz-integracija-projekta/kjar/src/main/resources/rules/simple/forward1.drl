@@ -5,249 +5,224 @@ import com.ftn.sbnz.model.models.examinations.ExaminationState;
 import com.ftn.sbnz.model.models.examinations.Symptom;
 import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
 import com.ftn.sbnz.model.models.examinations.ExaminationType;
+import com.ftn.sbnz.model.models.examinations.ExaminationProcess;
 import com.ftn.sbnz.model.models.examinations.TumorType;
 import com.ftn.sbnz.model.models.examinations.TestResult;
 import com.ftn.sbnz.model.models.examinations.Diagnosis;
 import com.ftn.sbnz.model.models.examinations.TNMKlassification;
+import com.ftn.sbnz.model.models.examinations.UpdatedExamination;
 import com.ftn.sbnz.model.models.therapy.Therapy;
 import com.ftn.sbnz.model.models.therapy.Operation;
 import com.ftn.sbnz.model.models.therapy.PaliativeCare;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
+import com.ftn.sbnz.service.repository.examination.ExaminationRepository;
+import com.ftn.sbnz.service.repository.users.PatientRepository;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
 
 global Set<String> criticalSymptoms;
+global ExaminationRepository examinationRepository;
+global PatientRepository patientRepository;
 
 rule "Schedule CT and RTG based on specific symptoms"
+    no-loop true
 when
-    $patient: Patient($examinations: examinations)
-    $examination: Examination($symptoms: symptoms) from $examinations
+    $updatedExamination : UpdatedExamination($patient: patient, $examination: examination)
     Number(intValue >= 3) from accumulate(
-        $symptom: Symptom(name in (criticalSymptoms) && this memberOf $symptoms), 
-        count($symptom)
+        $symptom: Symptom(name memberOf criticalSymptoms) from $examination.getSymptoms(),
+        count(1)
     )
 then
-    Examination ctExamination = new Examination(null, LocalDateTime.now(), null, "Scheduled CT scan based on symptoms",
-            ExaminationState.SCHEDULED, new HashSet<ExaminationType>(), $examination.getSymptoms(),
-            null, null);
-    Examination rtgExamination = new Examination(null, LocalDateTime.now(), null, "Scheduled RTG scan based on symptoms",
-            ExaminationState.SCHEDULED, new HashSet<ExaminationType>(), $examination.getSymptoms(),
-            null, null);
+    ExaminationProcess process = new ExaminationProcess($patient, $patient.getExaminations(), false, false,
+            false, false, false, false, false, false, false, false, false, false, false, false, null, null);
+    insert(process);
+    System.out.println("Pravilo 'Schedule CT and RTG based on specific symptoms' se okinulo.");
 
-    HashSet<Examination> updatedExaminations = new HashSet<Examination>($examinations);
-    updatedExaminations.add(ctExamination);
-    updatedExaminations.add(rtgExamination);
-
-    modify($patient) {
-        setExaminations(updatedExaminations);
-    }
-    System.out.println("Okinulo se forward 1 pravilo 1");
 end
 
-rule "Schedule Biopsy if CT and RTG results are positive"
-when
-    $patient : Patient($examinations: examinations)
-    not (Examination(
-        note matches ".*biopsy.*"
-    ) from $examinations)
-    $ctExamination : Examination(
-        examinationState == ExaminationState.DONE,
-        note == "CT scan"
-    ) from $examinations
-    $ctType : ExaminationType() from $ctExamination.getExaminationTypes()
-    $ctResult : TestResult(
-        value > 0.0,
-        description == "positive for changes"
-    ) from $ctType.getTestResults()
-    $rtgExamination : Examination(
-        examinationState == ExaminationState.DONE,
-        note == "RTG scan"
-    ) from $examinations
-    $rtgType : ExaminationType() from $rtgExamination.getExaminationTypes()
-    $rtgResult : TestResult(
-        value > 0.0,
-        description == "positive for changes"
-    ) from $rtgType.getTestResults()
-then
-    Examination biopsyExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
-            "Scheduled biopsy based on positive CT and RTG results", ExaminationState.SCHEDULED, 
-            new HashSet<ExaminationType>(), null,
-            null, null);
-
-    if ($ctExamination.getExaminationTypes().size() > 2 && $rtgExamination.getExaminationTypes().size() > 2) {
-        biopsyExamination.setNote(biopsyExamination.getNote() + " - Core Needle Biopsy");
-    } else {
-        biopsyExamination.setNote(biopsyExamination.getNote() + " - Fine Needle Aspiration Biopsy");
-    }
-    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
-    updatedExaminations.add(biopsyExamination);
-    modify($patient) {
-        setExaminations(updatedExaminations);
-    }
-    System.out.println("Biopsy scheduled for patient based on positive CT and RTG results.");
-    System.out.println("Okinulo se forward 1 pravilo 2");
-end
-
-rule "Schedule follow-up tests after malignant biopsy"
+rule "Change flags for CT positive changes"
     no-loop true
 when
-    $patient : Patient($examinations: examinations)
-    $biopsyExamination : Examination(
+    $process: ExaminationProcess(ctDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
+        examinationState == ExaminationState.DONE,
+        note matches ".*CT.*"
+    ) from $examinations
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
+then
+    modify($process) {
+        setCtDone(true),
+        setCtPositive(true)
+    };
+    System.out.println("Pravilo 'Change flags for CT positive changes' se okinulo.");
+end
+
+rule "Change flags for RTG positive changes"
+    no-loop true
+when
+    $process: ExaminationProcess(rtgDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
+        examinationState == ExaminationState.DONE,
+        note matches ".*RTG.*"
+    ) from $examinations
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
+then
+    modify($process) {
+        setRtgDone(true),
+        setRtgPositive(true)
+    };
+    System.out.println("Pravilo 'Change flags for RTG positive changes' je okinulo.");
+end
+
+rule "Change flags for biopsy positive changes"
+    no-loop true
+when
+    $process: ExaminationProcess(biopsyDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
         examinationState == ExaminationState.DONE,
         note matches ".*biopsy.*"
     ) from $examinations
-    $biopsyType : ExaminationType() from $biopsyExamination.getExaminationTypes()
-    $biopsyResult : TestResult(
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
         value > 0.0,
-        description == "malignant"
-    ) from $biopsyType.getTestResults()
-    not (
-        Examination(note == "Scheduled Spirometrija") from $examinations
-    )
-    not (
-        Examination(note == "Scheduled Test difuznog kapaciteta pluća (DLCO)") from $examinations
-    )
-    not (
-        Examination(note == "Scheduled Spiroergometrija") from $examinations
-    )
+        description matches ".*malignant.*"
+    ) from $examinationType.getTestResults()
 then
-    Examination spirometryExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
-            "Scheduled Spirometrija", ExaminationState.SCHEDULED, 
-            new HashSet<ExaminationType>(), null,
-            null, null);
-    Examination dlcoExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
-            "Scheduled Test difuznog kapaciteta pluća (DLCO)", ExaminationState.SCHEDULED, 
-            new HashSet<ExaminationType>(), null,
-            null, null);
-    Examination spiroergometryExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
-            "Scheduled Spiroergometrija", ExaminationState.SCHEDULED, 
-            new HashSet<ExaminationType>(), null,
-            null, null);
-    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
-    updatedExaminations.add(spirometryExamination);
-    updatedExaminations.add(dlcoExamination);
-    updatedExaminations.add(spiroergometryExamination);
-    modify($patient) {
-        setExaminations(updatedExaminations);
-    }
-    System.out.println("Scheduled follow-up tests for patient after malignant biopsy.");
-    System.out.println("Okinulo se forward 1 pravilo 3");
+    modify($process) {
+        setBiopsyDone(true),
+        setBiopsyPositive(true)
+    };
+    System.out.println("Pravilo 'Change flags for biopsy positive changes' je okinulo.");
 end
 
-
-rule "Schedule genetic test if follow-up test results are bad"
+rule "Change flags for spirometry positive changes"
     no-loop true
 when
-    $patient : Patient($examinations: examinations)
-    $spirometryExamination : Examination(
+    $process: ExaminationProcess(spirometryDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
         examinationState == ExaminationState.DONE,
-        note == "Scheduled Spirometrija"
+        note matches ".*spirometry.*"
     ) from $examinations
-    $spirometryType : ExaminationType() from $spirometryExamination.getExaminationTypes()
-    $spirometryResult : TestResult(
-        (description == "FEV1" && value < 80.0) || 
-        (description == "FVC" && value < 80.0) || 
-        (description == "FEV1/FVC" && value < 70.0)
-    ) from $spirometryType.getTestResults()
-    $dlcoExamination : Examination(
-        examinationState == ExaminationState.DONE,
-        note == "Scheduled Test difuznog kapaciteta pluća (DLCO)"
-    ) from $examinations
-    $dlcoType : ExaminationType() from $dlcoExamination.getExaminationTypes()
-    $dlcoResult : TestResult(
-        description == "DLCO" && value < 80.0
-    ) from $dlcoType.getTestResults()
-    $spiroergometryExamination : Examination(
-        examinationState == ExaminationState.DONE,
-        note == "Scheduled Spiroergometrija"
-    ) from $examinations
-    $spiroergometryType : ExaminationType() from $spiroergometryExamination.getExaminationTypes()
-    $spiroergometryResult : TestResult(
-        (description == "VO2 max" && value < 80.0) || 
-        (description == "Relative VO2 max" && value < 80.0)
-    ) from $spiroergometryType.getTestResults()
-    not (
-        Examination(
-            note == "Scheduled Genetic Test"
-        ) from $examinations
-    )
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
 then
-    Examination geneticTestExamination = new Examination(null, LocalDateTime.now().plusDays(1), null, 
-            "Scheduled Genetic Test", ExaminationState.SCHEDULED, 
-            new HashSet<ExaminationType>(), null,
-            null, null);
-    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
-    updatedExaminations.add(geneticTestExamination);
-    modify($patient) {
-        setExaminations(updatedExaminations);
-    }
-
-    System.out.println("Scheduled genetic test for patient due to bad follow-up test results.");
-    System.out.println("Okinulo se forward 1 pravilo 4");
+    modify($process) {
+        setSpirometryDone(true),
+        setSpirometryBadResult(true)
+    };
+    System.out.println("Pravilo 'Change flags for spirometry positive changes' je okinulo.");
 end
 
-rule "Determine cancer stage and create diagnosis"
+rule "Change flags for spiroergometry positive changes"
     no-loop true
 when
-    $patient: Patient($examinations: examinations)
-    $examination: Examination(
+    $process: ExaminationProcess(spiroergometryDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
         examinationState == ExaminationState.DONE,
+        note matches ".*spiroergometry.*"
+    ) from $examinations
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
+then
+    modify($process) {
+        setSpiroergometryDone(true),
+        setSpiroergometryBadResult(true)
+    };
+    System.out.println("Pravilo 'Change flags for spiroergometry positive changes' je okinulo.");
+end
+
+rule "Change flags for DLCO positive changes"
+    no-loop true
+when
+    $process: ExaminationProcess(dlcoDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
+        examinationState == ExaminationState.DONE,
+        note matches ".*DLCO.*"
+    ) from $examinations
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
+then
+    modify($process) {
+        setDlcoDone(true),
+        setDlcoBadResult(true)
+    };
+    System.out.println("Pravilo 'Change flags for DLCO positive changes' je okinulo.");
+end
+
+rule "Change flags for genetic test positive changes"
+    no-loop true
+when
+    $process: ExaminationProcess(geneticTestDone == false, $patient: patient, $examinations: examinations)
+    $examination : Examination(
+        examinationState == ExaminationState.DONE,
+        note matches ".*genetic.*"
+    ) from $examinations
+    $examinationType : ExaminationType() from $examination.getExaminationTypes()
+    $testResult : TestResult(
+        value > 0.0,
+        description == "positive for changes"
+    ) from $examinationType.getTestResults()
+then
+    modify($process) {
+        setGeneticTestDone(true),
+        setGeneticTestBadResult(true)
+    };
+    System.out.println("Pravilo 'Change flags for genetic test positive changes' je okinulo.");
+    
+end
+
+rule "Determine diagnosis based on examination results"
+    no-loop true
+when
+    $process: ExaminationProcess(
+        ctPositive == true || rtgPositive == true || biopsyPositive == true || spirometryBadResult == true ||
+        spiroergometryBadResult == true || dlcoBadResult == true || geneticTestBadResult == true,
         diagnosis == null
-    ) from $examinations
-    $examinationType: ExaminationType() from $examination.getExaminationTypes()
-    $biopsyResult: TestResult(description == "malignant", value > 0.0) from $examinationType.getTestResults()
-    $spirometryResult: TestResult((description == "FEV1" && value < 80.0) || 
-                                  (description == "FVC" && value < 80.0) || 
-                                  (description == "FEV1/FVC" && value < 70.0)) from $examinationType.getTestResults()
-    $dlcoResult: TestResult(description == "DLCO" && value < 80.0) from $examinationType.getTestResults()
-    $spiroergometryResult: TestResult((description == "VO2 max" && value < 80.0) || 
-                                      (description == "Relative VO2 max" && value < 80.0)) from $examinationType.getTestResults()
+    )
+    $patient: Patient()
 then
-    TNMKlassification tnm = new TNMKlassification(null, 2.0, 1.0, 0.0, LocalDateTime.now());
-
-    Diagnosis diagnosis = new Diagnosis(null, true, determineTumorType($examination), tnm);
-    HashSet<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
-    updatedExaminations.remove($examination);
-    modify($examination) {
-        setDiagnosis(diagnosis);
+    Diagnosis diagnosis = new Diagnosis(null, true, TumorType.INTRATHORACAL_PULMONARY, new TNMKlassification(null, 2.0, 1.0, 0.0, LocalDateTime.now()));
+    diagnosis.setTumorDetected(true);
+    if ($process.isGeneticTestBadResult()) {
+        diagnosis.setTumorType(TumorType.INTRATHORACAL_PULMONARY);  
+    } else if ($process.isDlcoBadResult() || $process.isSpiroergometryBadResult() || $process.isSpirometryBadResult()) {
+        diagnosis.setTumorType(TumorType.INTRATHORACAL_NONPULMONARY);  
+    } else if ($process.isBiopsyPositive()) {
+        diagnosis.setTumorType(TumorType.EXTRATORACAL_PULMONARY);  
+    } else {
+        diagnosis.setTumorType(TumorType.EXTRATORACAL_NONPULMONARY);  
     }
-    updatedExaminations.add($examination);
-    modify($patient) {
-        setExaminations(updatedExaminations);
+    modify($process) {
+        setDiagnosis(diagnosis)
+    };
+    for (Examination exam : $patient.getExaminations()) {
+        if (exam.getDiagnosis() == null) {
+            exam.setDiagnosis(diagnosis);
+            System.out.println("Postavljena dijagnoza za pregled: " + exam.getNote());
+        }
     }
-    System.out.println("Diagnosis created for patient based on TNM classification and test results.");
-    System.out.println("Okinulo se forward 1 pravilo 5");
-end
-
-function TumorType determineTumorType(Examination examination) {
-    if (examination.getNote().contains("pulmonalni")) {
-        return TumorType.INTRATHORACAL_PULMONARY;
-    } else if (examination.getNote().contains("nepulmonalni")) {
-        return TumorType.INTRATHORACAL_NONPULMONARY;
-    } else if (examination.getNote().contains("metastatski")) {
-        return TumorType.EXTRATORACAL_PULMONARY;
-    } else if (examination.getNote().contains("nemetastatski")) {
-        return TumorType.EXTRATORACAL_NONPULMONARY;
-    }
-    return TumorType.INTRATHORACAL_NONPULMONARY;
-}
-
-rule "Determine therapy based on TNM classification"
-    no-loop true
-when
-    $examination: Examination(diagnosis != null)
-    $diagnosis: Diagnosis(tnmKlassification != null) from $examination.getDiagnosis()
-    $tnm: TNMKlassification(tKlassification > 0.0) from $diagnosis.getTnmKlassification()
-then
-    Therapy therapy = createTherapyBasedOnTNM($tnm);
-    modify($examination){
-        setTherapy(therapy);
-    }
-    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
-    System.out.println("Okinulo se forward 1 pravilo 6");
+    System.out.println("Pravilo 'Determine diagnosis based on examination results' je okinulo.");
+    
 end
 
 function Therapy createTherapyBasedOnTNM(TNMKlassification tnm) {
@@ -255,10 +230,10 @@ function Therapy createTherapyBasedOnTNM(TNMKlassification tnm) {
             TherapyType.PALLIATIVE_CARE, TherapyState.PLANNED);
 
     if (tnm.gettKlassification() <= 2 && tnm.getnKlassification() == 0 && tnm.getmKlassification() == 0) {
-        therapy.setTherapyType(TherapyType.OPERATION);
+        therapy.setTherapyType(TherapyType.RADIOTHERAPY);
         therapy.setDescription("Planned surgery based on TNM classification");
     } else if (tnm.gettKlassification() <= 3 && tnm.getnKlassification() <= 1 && tnm.getmKlassification() == 0) {
-        therapy.setTherapyType(TherapyType.RADIOTHERAPY);
+        therapy.setTherapyType(TherapyType.OPERATION);
         therapy.setDescription("Planned radiotherapy based on TNM classification");
     } else if (tnm.gettKlassification() <= 4 && tnm.getnKlassification() <= 2 && tnm.getmKlassification() == 0) {
         therapy.setTherapyType(TherapyType.CHEMOTHERAPY);
@@ -270,3 +245,26 @@ function Therapy createTherapyBasedOnTNM(TNMKlassification tnm) {
 
     return therapy;
 }
+
+rule "Determine therapy based on TNM classification in ExaminationProcess"
+    no-loop true
+when
+    $process: ExaminationProcess(diagnosis != null, therapy == null)
+    $diagnosis: Diagnosis(tnmKlassification != null) from $process.getDiagnosis()
+    $tnm: TNMKlassification(tKlassification > 0.0) from $diagnosis.getTnmKlassification()
+then
+    Therapy therapy = createTherapyBasedOnTNM($tnm);
+    modify($process) {
+        setTherapy(therapy)
+    };
+    for (Examination exam : $process.getPatient().getExaminations()) {
+        if (exam.getTherapy() == null) {
+            exam.setTherapy(therapy);
+            System.out.println("Postavljena terapija za pregled: " + exam.getNote());
+        }
+    }
+    patientRepository.save($process.getPatient());
+    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
+    System.out.println("Okinulo se forward 1 pravilo 6");
+    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
+end

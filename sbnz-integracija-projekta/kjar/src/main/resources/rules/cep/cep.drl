@@ -5,15 +5,21 @@ import com.ftn.sbnz.model.events.PulseEvent;
 import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.model.models.alarms.TemperatureAlarm;
 import com.ftn.sbnz.model.models.alarms.PulseAlarm;
+import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.models.examinations.Examination;
-import com.ftn.sbnz.model.models.therapy.Operation;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
 import com.ftn.sbnz.model.models.Result;
+import com.ftn.sbnz.service.service.WebSocketService;
+import com.ftn.sbnz.service.repository.alarms.AlarmRepository;
+import java.time.LocalDateTime;
 
+global WebSocketService webSocketService;
 global Result result;
+global AlarmRepository alarmRepository;
 
 rule "Generate Temperature Warning"
+    no-loop true
 when
     $patient : Patient()
     $e1 : TemperatureEvent(patient.getId() == $patient.getId(), temperature > 38.5, $temperature: temperature)
@@ -24,6 +30,12 @@ when
         ) over window:time(12h),
         count($event)
     )
+    not(
+        TemperatureAlarm(
+            patient.getId() == $patient.getId(),
+            temperature == $temperature
+        )
+    )
 then
     TemperatureAlarm tempAlarm = new TemperatureAlarm($patient, $temperature, new java.util.Date());
     insert(tempAlarm);
@@ -33,15 +45,22 @@ then
 end
 
 rule "Check Pulse After Temperature Warning"
+    no-loop true
 when
     $temperatureAlarm : TemperatureAlarm($patient: patient)
-    $e1 : PulseEvent($patient.getId() == patient.getId(), pulse > 100, $pulse: pulse)
+    $e1 : PulseEvent(patient.getId() == $patient.getId(), pulse > 100, $pulse: pulse)
     Number(intValue >= 2) from accumulate(
         $event : PulseEvent(
             pulse > 100,
             patient.getId() == $patient.getId()
         ) over window:time(12h),
         count($event)
+    )
+    not(
+        PulseAlarm(
+            patient.getId() == $patient.getId(),
+            pulse == $pulse
+        )
     )
 then
     PulseAlarm pulseAlarm = new PulseAlarm($patient, $pulse, new java.util.Date());
@@ -52,7 +71,7 @@ then
 end
 
 rule "Generate Emergency Intervention"
-no-loop
+    no-loop true
 when
     $pulseAlarm : PulseAlarm($patient: patient)
     $examination : Examination(
@@ -61,10 +80,16 @@ when
         therapy.therapyType == TherapyType.OPERATION
     ) from $patient.getExaminations()
 then
-    modify($examination.getTherapy()) {
-        setTherapyState(TherapyState.CANCELED);
+    if($examination.getTherapy()!=null){
+        modify($examination.getTherapy()) {
+            setTherapyState(TherapyState.CANCELED);
+        }
     }
     result.addFact("Emergency Intervention Required for patient: " + $patient.getIme());
     System.out.println("Potrebna je hitna intervencija za pacijenta: " + $patient.getIme() + " zbog visokog pulsa. Operacija je otkazana.");
     System.out.println("Okinulo se cep pravilo 3");
+    Alarm alarm = new Alarm(null, $patient, "Emergency Intervention Required", LocalDateTime.now());
+    webSocketService.sendAlarm(alarm);
+    insert(alarm);
+    alarmRepository.save(alarm);
 end

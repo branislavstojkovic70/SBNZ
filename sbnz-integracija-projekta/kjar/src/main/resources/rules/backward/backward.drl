@@ -3,21 +3,32 @@ package backward;
 import com.ftn.sbnz.model.models.Fact;
 import com.ftn.sbnz.model.models.Result;
 import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.users.Doctor;
 import com.ftn.sbnz.model.models.users.OperatedPatient;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import com.ftn.sbnz.model.models.examinations.ExaminationState;
 import com.ftn.sbnz.model.models.examinations.Symptom;
 import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
+import com.ftn.sbnz.model.models.examinations.UpdatedExamination;
 import com.ftn.sbnz.model.models.examinations.ExaminationType;
 import com.ftn.sbnz.model.models.examinations.TumorType;
 import com.ftn.sbnz.model.models.examinations.TestResult;
 import com.ftn.sbnz.model.models.examinations.Diagnosis;
 import com.ftn.sbnz.model.models.examinations.TNMKlassification;
 import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.service.service.WebSocketService;
+import com.ftn.sbnz.service.repository.users.PatientRepository;
+import com.ftn.sbnz.service.repository.users.DoctorRepository;
+import com.ftn.sbnz.service.repository.alarms.AlarmRepository;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Set;
 
 global Result result;
+global WebSocketService webSocketService;
+global PatientRepository patientRepository;
+global DoctorRepository doctorRepository;
+global AlarmRepository alarmRepository;
 
 query childOf(Patient child, Patient parent)
     Fact(child, parent;)
@@ -34,11 +45,14 @@ end
 
 rule "warn children of tumor diagnosis"
 when
-    $parent : Patient()
-    $examination : Examination(diagnosis.isTumorDetected == true) from $parent.getExaminations()
+    $updatedExamination : UpdatedExamination($parent: patient, $examination : examination)
+    $diagnosis : Diagnosis(tumorDetected == true) from $examination.getDiagnosis()
     childOf($child, $parent;)
 then
-    insert(new Alarm(null, $child, "Parent has tumor", LocalDateTime.now()));
+    Alarm alarm = new Alarm(null, $child, "Parent has tumor", LocalDateTime.now());
+    insert(alarm);
+    webSocketService.sendAlarm(alarm);
+    alarmRepository.save(alarm);
     result.addFact("Warning: " + $child.getIme() + " should schedule a screening due to parent's tumor diagnosis");
     System.out.println("Okinulo se backward pravilo 1");
 end
@@ -47,10 +61,17 @@ rule "Schedule examination due to tumor alarm"
 when
     $alarm : Alarm(description == "Parent has tumor", $patient : patient)
 then
-    Examination newExamination = new Examination(null, LocalDateTime.now().plusMonths(1), null, "Detected tumor at parent",
+    Doctor doctor = doctorRepository.findById(2).get();
+    Examination newExamination = new Examination(null, LocalDateTime.now().plusMonths(1), doctor, "Detected tumor at parent",
             ExaminationState.SCHEDULED, new HashSet<ExaminationType>(), new HashSet<Symptom>(),
             null, null);
     insert(newExamination);
+    Set<Examination> updatedExaminations = new HashSet<Examination>($patient.getExaminations());
+    updatedExaminations.add(newExamination);
+    modify($patient) {
+        setExaminations(updatedExaminations);
+    }
+    patientRepository.save($patient);
     System.out.println("Scheduled a new examination for patient: " + $patient.getIme() + " due to parental tumor diagnosis.");
     result.addFact("Scheduled examination for patient: " + $patient.getIme() + " due to parental tumor diagnosis.");
     System.out.println("Okinulo se backward pravilo 2");

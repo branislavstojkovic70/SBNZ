@@ -1,6 +1,7 @@
 package com.ftn.sbnz.model.models.users;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -21,9 +22,9 @@ public class Patient extends User{
     private double saturationO2;
     private double bodyTemperature;
     
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "pacijent_id")
-    private Set<Examination> examinations;
+    private Set<Examination> examinations = new HashSet<>();
     public double getBloodPressure() {
         return bloodPressure;
     }

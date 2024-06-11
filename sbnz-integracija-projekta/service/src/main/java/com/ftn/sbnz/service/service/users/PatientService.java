@@ -13,16 +13,12 @@ import com.ftn.sbnz.model.models.examinations.ExaminationState;
 import com.ftn.sbnz.model.models.therapy.Therapy;
 import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.service.repository.users.PatientRepository;
-import com.ftn.sbnz.service.service.DroolsService;
 
 @Service
 public class PatientService {
 
     @Autowired
     private PatientRepository patientRepository;
-
-    @Autowired
-    private DroolsService droolsService;
 
     public List<Patient> findAll() {
         return patientRepository.findAll();
@@ -34,7 +30,6 @@ public class PatientService {
 
     public Patient save(Patient patient) {
         Patient savedPatient = patientRepository.save(patient);
-        droolsService.insertAndFireAllRules(savedPatient);
         return savedPatient;
     }
 
@@ -84,4 +79,7 @@ public class PatientService {
         return null;
     }
 
+    public Patient getPatientByExaminationId(Integer examinationId) {
+        return patientRepository.findPatientByExaminationId(examinationId);
+    }
 }

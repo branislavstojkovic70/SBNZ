@@ -9,10 +9,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @PropertySource("classpath:application.properties")
 @EntityScan(basePackages = {"com.ftn.sbnz.model.models"})
+@EnableScheduling
 public class ServiceApplication  {
     
     private static Logger log = LoggerFactory.getLogger(ServiceApplication.class);

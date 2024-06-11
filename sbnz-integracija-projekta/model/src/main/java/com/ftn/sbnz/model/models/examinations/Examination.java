@@ -1,6 +1,7 @@
 package com.ftn.sbnz.model.models.examinations;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -10,6 +11,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -34,10 +37,15 @@ public class Examination {
     private ExaminationState examinationState;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private Set<ExaminationType> examinationTypes;
+    private Set<ExaminationType> examinationTypes = new HashSet<>();
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private Set<Symptom> symptoms;
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "examination_symptoms",
+        joinColumns = @JoinColumn(name = "examination_id"),
+        inverseJoinColumns = @JoinColumn(name = "symptom_id")
+    )
+    private Set<Symptom> symptoms = new HashSet<>();
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "diagnosis_id", referencedColumnName = "id")

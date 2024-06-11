@@ -1,6 +1,7 @@
 package com.ftn.sbnz.service.tests;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import com.ftn.sbnz.model.models.examinations.Symptom;
 import com.ftn.sbnz.model.models.examinations.SymptomFrequency;
 import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.service.service.WebSocketService;
 
 public class RuleTemplatesTest1 {
 
@@ -36,12 +38,15 @@ public class RuleTemplatesTest1 {
             ExternalSpreadsheetCompiler converter = new ExternalSpreadsheetCompiler();
             String drl = converter.compile(data, template, 3, 2);
 
-            System.out.println(drl); 
+            System.out.println(drl);
 
             KieSession ksession = createKieSessionFromDRLWithPseudoClock(drl);
 
             List<Alarm> alarmList = new ArrayList<>();
             ksession.setGlobal("alarms", alarmList);
+
+            WebSocketService webSocketService = mock(WebSocketService.class);
+            ksession.setGlobal("webSocketService", webSocketService);
 
             SessionPseudoClock clock = ksession.getSessionClock();
 
@@ -82,23 +87,26 @@ public class RuleTemplatesTest1 {
 
             assertTrue("Alarm list should not be empty", !alarmList.isEmpty());
             boolean alarmCreated = alarmList.stream()
-                .anyMatch(alarm -> alarm.getPatient().getId().equals(patient.getId()) &&
-                                   alarm.getDescription().contains("Symptom aggravation detected for patient: " + patient.getIme()));
+                    .anyMatch(alarm -> alarm.getPatient().getId().equals(patient.getId()) &&
+                            alarm.getDescription().contains("Symptom aggravation detected for patient: " + patient.getIme()));
 
             assertTrue("Alarm should be created for the patient", alarmCreated);
 
+            // Verify that webSocketService.sendAlarm is called three times
+            verify(webSocketService, times(3)).sendAlarm(any(Alarm.class));
+
         } catch (Exception e) {
             e.printStackTrace();
-            throw e; 
+            throw e;
         }
     }
 
     private KieSession createKieSessionFromDRLWithPseudoClock(String drl) {
         KieHelper kieHelper = new KieHelper();
         kieHelper.addContent(drl, ResourceType.DRL);
-    
+
         Results results = kieHelper.verify();
-    
+
         if (results.hasMessages(Message.Level.WARNING, Message.Level.ERROR)) {
             List<Message> messages = results.getMessages(Message.Level.WARNING, Message.Level.ERROR);
             for (Message message : messages) {

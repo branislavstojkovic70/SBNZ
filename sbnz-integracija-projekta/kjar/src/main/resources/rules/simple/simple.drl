@@ -16,17 +16,23 @@ import com.ftn.sbnz.model.models.therapy.Operation;
 import com.ftn.sbnz.model.models.therapy.PaliativeCare;
 import com.ftn.sbnz.model.models.therapy.TherapyState;
 import com.ftn.sbnz.model.models.therapy.TherapyType;
+import com.ftn.sbnz.model.models.alarms.Alarm;
+import com.ftn.sbnz.service.service.WebSocketService;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 
 global Set<String> criticalSymptoms;
+global WebSocketService webSocketService;
 
 rule "Critical Blood Pressure Alert"
 when
     $patient : Patient(bloodPressure > 180 || bloodPressure < 90)
 then
-    System.out.println("Alert: Critical change in blood pressure detected. Value: " + $patient.getBloodPressure());
+    String message = "Alert: Critical change in blood pressure detected. Value: " + $patient.getBloodPressure();
+    System.out.println(message);
+    Alarm alarm = new Alarm(null, $patient, message, LocalDateTime.now());
+    webSocketService.sendAlarm(alarm);
     System.out.println("Okinulo se simple pravilo 1");
 end
 
@@ -34,7 +40,10 @@ rule "Critical Pulse Alert"
 when
     $patient : Patient(puls > 120 || puls < 50)
 then
-    System.out.println("Alert: Critical change in pulse detected. Value: " + $patient.getPuls());
+    String message = "Alert: Critical change in pulse detected. Value: " + $patient.getPuls();
+    System.out.println(message);
+    Alarm alarm = new Alarm(null, $patient, message, LocalDateTime.now());
+    webSocketService.sendAlarm(alarm);
     System.out.println("Okinulo se simple pravilo 2");
 end
 
@@ -42,7 +51,10 @@ rule "Critical Oxygen Saturation Alert"
 when
     $patient : Patient(saturationO2 < 90)
 then
-    System.out.println("Alert: Critical change in oxygen saturation detected. Value: " + $patient.getSaturationO2());
+    String message = "Alert: Critical change in oxygen saturation detected. Value: " + $patient.getSaturationO2();
+    System.out.println(message);
+    Alarm alarm = new Alarm(null, $patient, message, LocalDateTime.now());
+    webSocketService.sendAlarm(alarm);
     System.out.println("Okinulo se simple pravilo 3");
 end
 
@@ -50,7 +62,10 @@ rule "Critical Body Temperature Alert"
 when
     $patient : Patient(bodyTemperature > 39 || bodyTemperature < 36)
 then
-    System.out.println("Alert: Critical change in body temperature detected. Value: " + $patient.getBodyTemperature());
+    String message = "Alert: Critical change in body temperature detected. Value: " + $patient.getBodyTemperature();
+    System.out.println(message);
+    Alarm alarm = new Alarm(null, $patient, message, LocalDateTime.now());
+    webSocketService.sendAlarm(alarm);
     System.out.println("Okinulo se simple pravilo 4");
 end
 
