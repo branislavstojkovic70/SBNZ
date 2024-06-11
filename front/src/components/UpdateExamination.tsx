@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Examination } from '../model/examination/Examination';
 import { updateExamination } from '../services/examinationService';
-import { Button, TextField, Container, Box, Typography, MenuItem, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from '@mui/material';
+import { Button, TextField, Container, Box, Typography, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from '@mui/material';
 import { ExaminationState } from '../model/examination/ExaminationState';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -25,7 +25,7 @@ const UpdateExamination: React.FC = () => {
     };
 
     const handleAddSymptom = () => {
-        setUpdatedExamination({ ...updatedExamination, symptoms: [...updatedExamination.symptoms, { id: 0, name: '', description: '', intensity: 0, symptomFrequency: SymptomFrequency.CONSTANT }] });
+        setUpdatedExamination({ ...updatedExamination, symptoms: [...updatedExamination.symptoms, { name: '', description: '', intensity: 0, symptomFrequency: SymptomFrequency.CONSTANT }] });
     };
 
     const handleDeleteSymptom = (index: number) => {
@@ -40,38 +40,56 @@ const UpdateExamination: React.FC = () => {
     };
 
     const handleAddExaminationType = () => {
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: [...(updatedExamination.examinationTypes || []), { id: 0, name: '', testResults: [] }] });
+        setUpdatedExamination((prevState) => ({
+            ...prevState,
+            examinationTypes: [...(prevState.examinationTypes || []), { name: '', testResults: [] }]
+        }));
     };
+    
 
     const handleDeleteExaminationType = (index: number) => {
-        const updatedExaminationTypes = updatedExamination.examinationTypes?.filter((_, i) => i !== index) || [];
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: updatedExaminationTypes });
+        setUpdatedExamination((prevState) => ({
+            ...prevState,
+            examinationTypes: prevState.examinationTypes?.filter((_, i) => i !== index) || []
+        }));
     };
+    
 
     const handleExaminationTypeChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        const updatedExaminationTypes = updatedExamination.examinationTypes?.map((type, i) => (i === index ? { ...type, [name]: value } : type)) || [];
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: updatedExaminationTypes });
+        setUpdatedExamination((prevState) => {
+            const updatedExaminationTypes = prevState.examinationTypes?.map((type, i) => (i === index ? { ...type, [name]: value } : type)) || [];
+            return { ...prevState, examinationTypes: updatedExaminationTypes };
+        });
     };
 
     const handleAddTestResult = (typeIndex: number) => {
-        const updatedExaminationTypes = updatedExamination.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: [...type.testResults, { id: 0, name: '', measureUnit: '', value: 0, description: '' }] } : type)) || [];
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: updatedExaminationTypes });
+        setUpdatedExamination((prevState) => {
+            const updatedExaminationTypes = prevState.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: [...type.testResults, { name: '', measureUnit: '', value: 0, description: '' }] } : type)) || [];
+            return { ...prevState, examinationTypes: updatedExaminationTypes };
+        });
     };
+    
 
     const handleDeleteTestResult = (typeIndex: number, testResultIndex: number) => {
-        const updatedExaminationTypes = updatedExamination.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: type.testResults.filter((_, j) => j !== testResultIndex) } : type)) || [];
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: updatedExaminationTypes });
+        setUpdatedExamination((prevState) => {
+            const updatedExaminationTypes = prevState.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: type.testResults.filter((_, j) => j !== testResultIndex) } : type)) || [];
+            return { ...prevState, examinationTypes: updatedExaminationTypes };
+        });
     };
-
+    
     const handleTestResultChange = (typeIndex: number, testResultIndex: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        const updatedExaminationTypes = updatedExamination.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: type.testResults.map((testResult, j) => (j === testResultIndex ? { ...testResult, [name]: value } : testResult)) } : type)) || [];
-        setUpdatedExamination({ ...updatedExamination, examinationTypes: updatedExaminationTypes });
+        setUpdatedExamination((prevState) => {
+            const updatedExaminationTypes = prevState.examinationTypes?.map((type, i) => (i === typeIndex ? { ...type, testResults: type.testResults.map((testResult, j) => (j === testResultIndex ? { ...testResult, [name]: value } : testResult)) } : type)) || [];
+            return { ...prevState, examinationTypes: updatedExaminationTypes };
+        });
     };
-
+    
+    
     const handleUpdate = async () => {
         try {
+            console.log('Updated Examination:', updatedExamination);
             const updatedExaminationResult = await updateExamination(updatedExamination);
             console.log('Examination updated successfully:', updatedExaminationResult);
             if (updatedExamination.examinationState === ExaminationState.SCHEDULED) {
@@ -83,6 +101,7 @@ const UpdateExamination: React.FC = () => {
             setError('Failed to update examination');
         }
     };
+    
 
     return (
         <Container maxWidth="lg">

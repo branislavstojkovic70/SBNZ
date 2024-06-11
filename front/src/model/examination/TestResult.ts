@@ -1,5 +1,5 @@
 export interface TestResult {
-    id: number;
+    id?: number;
     name: string;
     measureUnit: string;
     value: number;

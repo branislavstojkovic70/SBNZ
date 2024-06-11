@@ -15,7 +15,6 @@ import com.ftn.sbnz.model.models.users.Patient;
 import com.ftn.sbnz.service.repository.examination.ExaminationRepository;
 import com.ftn.sbnz.service.repository.users.DoctorRepository;
 import com.ftn.sbnz.service.repository.users.PatientRepository;
-import com.ftn.sbnz.service.service.DroolsService;
 
 @Service
 public class DoctorService {
@@ -28,9 +27,6 @@ public class DoctorService {
 
     @Autowired
     private DoctorRepository doctorRepository;
-
-    @Autowired
-    private DroolsService droolsService;
 
     public List<Examination> getScheduledExaminationsByDoctorId(Integer doctorId) {
         return examinationRepository.findByDoctorIdAndExaminationState(doctorId, ExaminationState.SCHEDULED);
@@ -49,7 +45,6 @@ public class DoctorService {
 
     @Transactional
     public Doctor addDoctor(Doctor doctor) {
-        droolsService.insertAndFireAllRules(doctor);
         return doctorRepository.save(doctor);
     }
 

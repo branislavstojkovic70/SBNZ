@@ -1,7 +1,7 @@
 import { SymptomFrequency } from './SymptomFrequency';
 
 export interface Symptom {
-    id: number;
+    id?: number;
     name: string;
     description: string;
     intensity: number;

@@ -1,5 +1,6 @@
 package com.ftn.sbnz.model.models.examinations;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -19,7 +20,7 @@ public class ExaminationType {
     private String name;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private Set<TestResult> testResults;
+    private Set<TestResult> testResults = new HashSet<>();
 
     public Integer getId() {
         return id;

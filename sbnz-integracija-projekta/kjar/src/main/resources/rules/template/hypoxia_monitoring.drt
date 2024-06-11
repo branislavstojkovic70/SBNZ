@@ -10,13 +10,18 @@ import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.model.events.OxygenSaturationEvent;
 import java.time.LocalDateTime;
 import com.ftn.sbnz.service.service.WebSocketService;
+import com.ftn.sbnz.service.repository.alarms.AlarmRepository;
 
 global java.util.List<Alarm> alarms;
 global WebSocketService webSocketService;
+global AlarmRepository alarmRepository;
+global javax.persistence.EntityManager entityManager;
+
 
 template "hypoxia-monitoring-rules"
 
 rule "Detect Hypoxia for @{row.rowNumber}"
+    no-loop true
 when
     $patient : Patient()
     Number(intValue >= @{eventCountThreshold}) from accumulate(
@@ -27,10 +32,12 @@ when
         count($event)
     )
 then
+    $patient = entityManager.merge($patient);
     Alarm alarm = new Alarm(null, $patient, "Hypoxia detected for patient: " + $patient.getIme(), LocalDateTime.now());
     alarms.add(alarm);
     insert(alarm);
     webSocketService.sendAlarm(alarm);
+    alarmRepository.save(alarm);
     System.out.println("Hypoxia detected for patient: " + $patient.getIme());
     System.out.println("Okinulo se template pravilo 1");
 end
