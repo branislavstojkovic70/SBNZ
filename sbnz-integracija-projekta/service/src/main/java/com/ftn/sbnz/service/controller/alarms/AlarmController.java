@@ -95,6 +95,20 @@ public class AlarmController {
         }
     }
 
+    @PreAuthorize("hasRole('ROLE_Patient')")
+    @PutMapping("/simulate-symptom-aggravation-after-operation")
+    public ResponseEntity<?> simulateForward2(HttpServletRequest request) {
+        try {
+            Integer userId = getCurrentUserId(request);
+            this.simulationService.testForward2(userId);
+
+            return ResponseEntity.ok("Simulation completed successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred during the simulation: " + e.getMessage());
+        }
+    }
+
     public Integer getCurrentUserId(HttpServletRequest request) {
         return (Integer) request.getAttribute("userId");
     }

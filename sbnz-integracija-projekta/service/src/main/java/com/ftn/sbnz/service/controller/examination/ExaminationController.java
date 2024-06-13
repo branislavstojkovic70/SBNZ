@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.service.dtos.request.DetermineDiagnosisRequest;
 import com.ftn.sbnz.service.service.examination.ExaminationService;
 
 @Controller
@@ -16,6 +17,7 @@ public class ExaminationController {
 
     @Autowired
     private ExaminationService examinationService;
+
 
     @PreAuthorize("hasAnyRole('ROLE_Patient', 'ROLE_Doctor')")
     @GetMapping("/{id}")
@@ -46,5 +48,12 @@ public class ExaminationController {
             return ResponseEntity.ok(updatedExaminationResult);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    @PreAuthorize("hasRole('ROLE_Doctor')")
+    @PostMapping("/determine-diagnosis")
+    public ResponseEntity<Void> determineDiagnosis(@RequestBody DetermineDiagnosisRequest request) {
+        this.examinationService.findDiagnosis(request.getPatient(), request.getExaminations());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

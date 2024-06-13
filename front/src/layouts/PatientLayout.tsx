@@ -61,6 +61,9 @@ const PatientLayout = () => {
           <Link component={RouterLink} to="/patient/alarms" color="inherit" underline="none">
             <StyledButton>Alarms</StyledButton>
           </Link>
+          <Link component={RouterLink} to="/patient/simulations" color="inherit" underline="none">
+            <StyledButton>Simulations</StyledButton>
+          </Link>
         </Toolbar>
       </AppBar>
       <Outlet />

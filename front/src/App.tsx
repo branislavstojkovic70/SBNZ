@@ -17,6 +17,8 @@ import UpdateExamination from "./components/UpdateExamination";
 import AdminLayout from "./layouts/AdminLayout";
 import AddDoctor from "./components/AddDoctor";
 import DoctorTable from "./components/DoctorTable";
+import DetermineDiagnosis from "./components/DetermineDiagnosis";
+import SimulationComponent from "./components/SimulationComponent";
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
           <Route path="/doctor/patients" element={<PatientTable />} />
           <Route path="/doctor/addExamination" element={<ScheduleExamination />} />
           <Route path="/doctor/updateExamination" element={<UpdateExamination />} />
+          <Route path="/doctor/determineDiagnosis" element={<DetermineDiagnosis />} />
         </Route>
         <Route element={<PatientLayout />}>
           <Route path="/patient" element={<Home />} />
@@ -44,6 +47,7 @@ function App() {
           <Route path="/patient/diagnosis" element={<DiagnosisTable />} />
           <Route path="/patient/alarms" element={<AlarmTable />} />
           <Route path="/patient/therapies" element={<TherapyTable />} />
+          <Route path="/patient/simulations" element={<SimulationComponent />} />
         </Route>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Home />} />
