@@ -28,6 +28,7 @@ import com.ftn.sbnz.model.models.Result;
 import com.ftn.sbnz.model.models.alarms.Alarm;
 import com.ftn.sbnz.service.repository.alarms.AlarmRepository;
 import com.ftn.sbnz.service.repository.examination.ExaminationRepository;
+import com.ftn.sbnz.service.repository.therapy.TherapyRepository;
 import com.ftn.sbnz.service.repository.users.DoctorRepository;
 import com.ftn.sbnz.service.repository.users.PatientRepository;
 
@@ -38,6 +39,7 @@ public class DroolsService {
     private WebSocketService webSocketService;
     private DoctorRepository doctorRepository;
     private AlarmRepository alarmRepository;
+    private TherapyRepository therapyRepository;
 
     private KieSession bwKsession;
     private KieSession cepKsession;
@@ -54,13 +56,14 @@ public class DroolsService {
     @Autowired
     public DroolsService(ExaminationRepository examinationRepository, PatientRepository patientRepository,
             WebSocketService webSocketService, DoctorRepository doctorRepository, AlarmRepository alarmRepository,
-            EntityManager em) {
+            EntityManager em, TherapyRepository therapyRepository) {
         this.examinationRepository = examinationRepository;
         this.patientRepository = patientRepository;
         this.webSocketService = webSocketService;
         this.doctorRepository = doctorRepository;
         this.alarmRepository = alarmRepository;
         this.entityManager = em;
+        this.therapyRepository = therapyRepository;
         KieServices kieServices = KieServices.Factory.get();
         KieContainer kieContainer = kieServices.getKieClasspathContainer();
 
@@ -85,8 +88,11 @@ public class DroolsService {
         this.forward1Ksession.setGlobal("examinationRepository", this.examinationRepository);
         this.forward1Ksession.setGlobal("patientRepository", this.patientRepository);
         this.forward1Ksession.setGlobal("webSocketService", this.webSocketService);
+        this.forward1Ksession.setGlobal("entityManager", this.entityManager);
 
         this.forward2Ksession = kieContainer.newKieSession("forward2Ksession");
+        this.forward2Ksession.setGlobal("webSocketService", this.webSocketService);
+
 
         this.template1Ksession = createTemplate1Ksession(kieServices);
         List<Alarm> alarmList = new ArrayList<>();

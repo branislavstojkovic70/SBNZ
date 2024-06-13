@@ -1,4 +1,7 @@
+package simple;
+
 import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.model.models.users.Doctor;
 import com.ftn.sbnz.model.models.users.OperatedPatient;
 import com.ftn.sbnz.model.models.examinations.Examination;
 import com.ftn.sbnz.model.models.examinations.ExaminationState;
@@ -26,6 +29,7 @@ import java.util.HashSet;
 global Set<String> criticalSymptoms;
 global ExaminationRepository examinationRepository;
 global PatientRepository patientRepository;
+global javax.persistence.EntityManager entityManager;
 
 rule "Schedule CT and RTG based on specific symptoms"
     no-loop true
@@ -215,15 +219,15 @@ then
     modify($process) {
         setDiagnosis(diagnosis)
     };
-    for (Examination exam : $patient.getExaminations()) {
+    for (Examination exam : $process.getExaminations()) {
         if (exam.getDiagnosis() == null) {
             exam.setDiagnosis(diagnosis);
             System.out.println("Postavljena dijagnoza za pregled: " + exam.getNote());
         }
     }
     System.out.println("Pravilo 'Determine diagnosis based on examination results' je okinulo.");
-    
 end
+
 
 function Therapy createTherapyBasedOnTNM(TNMKlassification tnm) {
     Therapy therapy = new Therapy(null, LocalDateTime.now(), LocalDateTime.now().plusMonths(6), "",
@@ -257,14 +261,9 @@ then
     modify($process) {
         setTherapy(therapy)
     };
-    for (Examination exam : $process.getPatient().getExaminations()) {
-        if (exam.getTherapy() == null) {
-            exam.setTherapy(therapy);
-            System.out.println("Postavljena terapija za pregled: " + exam.getNote());
-        }
-    }
-    patientRepository.save($process.getPatient());
     System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
-    System.out.println("Okinulo se forward 1 pravilo 6");
-    System.out.println("Therapy determined for patient based on TNM classification: " + therapy.getTherapyType());
+end
+
+query "getExaminationProcess"
+    $process: ExaminationProcess()
 end

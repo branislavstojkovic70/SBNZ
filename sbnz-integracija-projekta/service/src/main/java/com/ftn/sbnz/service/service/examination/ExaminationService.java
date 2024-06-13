@@ -1,17 +1,21 @@
 package com.ftn.sbnz.service.service.examination;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.kie.api.runtime.rule.QueryResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
 
 import com.ftn.sbnz.model.models.examinations.Examination;
+import com.ftn.sbnz.model.models.examinations.ExaminationProcess;
 import com.ftn.sbnz.model.models.examinations.ExaminationType;
 import com.ftn.sbnz.model.models.examinations.Symptom;
 import com.ftn.sbnz.model.models.examinations.TestResult;
@@ -88,8 +92,7 @@ public class ExaminationService {
             existingExamination.setExaminationState(updatedExamination.getExaminationState());
             existingExamination.setDiagnosis(updatedExamination.getDiagnosis());
             existingExamination.setTherapy(updatedExamination.getTherapy());
-            
-            // Update Symptoms
+
             Set<Symptom> updatedSymptoms = updatedExamination.getSymptoms();
             existingExamination.getSymptoms().clear();
             for (Symptom symptom : updatedSymptoms) {
@@ -103,7 +106,6 @@ public class ExaminationService {
                 existingExamination.getSymptoms().add(existingSymptom);
             }
 
-            // Update Examination Types and Test Results
             Set<ExaminationType> updatedExaminationTypes = updatedExamination.getExaminationTypes();
             existingExamination.getExaminationTypes().clear();
             for (ExaminationType type : updatedExaminationTypes) {
@@ -112,7 +114,8 @@ public class ExaminationService {
                     existingType = examinationTypeRepository.save(type);
                 } else {
                     existingType = examinationTypeRepository.findById(type.getId())
-                            .orElseThrow(() -> new NotFoundException("ExaminationType not found with id " + type.getId()));
+                            .orElseThrow(
+                                    () -> new NotFoundException("ExaminationType not found with id " + type.getId()));
                 }
 
                 existingType.getTestResults().clear();
@@ -122,7 +125,8 @@ public class ExaminationService {
                         existingResult = testResultRepository.save(result);
                     } else {
                         existingResult = testResultRepository.findById(result.getId())
-                                .orElseThrow(() -> new NotFoundException("TestResult not found with id " + result.getId()));
+                                .orElseThrow(
+                                        () -> new NotFoundException("TestResult not found with id " + result.getId()));
                     }
                     existingType.getTestResults().add(existingResult);
                 }
@@ -149,4 +153,43 @@ public class ExaminationService {
         return null;
     }
 
+    @Transactional
+    public void findDiagnosis(Patient patient, ArrayList<Examination> examinations) {
+        droolsService.getForward1Ksession().insert(examinations.get(0));
+        droolsService.getForward1Ksession().insert(patient);
+        for (Examination e : examinations) {
+            e.setDoctor(attachDoctor(e.getDoctor()));
+            patient.getExaminations().add(e);
+        }
+        droolsService.getForward1Ksession().insert(new UpdatedExamination(patient, examinations.get(0)));
+        droolsService.getForward1Ksession().fireAllRules();
+
+        for (Examination e : examinations) {
+            droolsService.getForward1Ksession().insert(e);
+        }
+        droolsService.getForward1Ksession().fireAllRules();
+        QueryResults results = droolsService.getForward1Ksession().getQueryResults("getExaminationProcess");
+        ExaminationProcess process = null;
+        if (results.size() > 0) {
+            process = (ExaminationProcess) results.iterator().next().get("$process");
+        }
+        HashSet<Examination> patientExaminations = new HashSet<>();
+        for (Examination e : process.getExaminations()) {
+            try {
+                e.setTherapy(process.getTherapy());
+                examinationRepository.save(e);
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+            e = examinationRepository.save(e);
+            patientExaminations.add(e);
+        }
+        for(Examination e : patient.getExaminations()){
+            patientExaminations.add(e);
+        }
+        patient.setExaminations(patientExaminations);
+        patientRepository.save(patient);
+        
+
+    }
 }

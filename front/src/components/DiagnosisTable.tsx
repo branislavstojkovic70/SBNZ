@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { Diagnosis } from '../model/examination/Diagnosis';
 import { fetchDiagnoses } from '../services/examinationService';
+import { useAppSelector } from '../hooks/redux-hooks';
 
 const DiagnosisTable: React.FC = () => {
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
@@ -26,13 +27,17 @@ const DiagnosisTable: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const basicUserInfo = useAppSelector((state) => state.auth.basicUserInfo);
 
   useEffect(() => {
     const getDiagnoses = async () => {
       try {
-        const data = await fetchDiagnoses(3);
-        setDiagnoses(data);
-        setLoading(false);
+        if (basicUserInfo !== undefined && basicUserInfo !== null) {
+          const data = await fetchDiagnoses(basicUserInfo?.id);
+          setDiagnoses(data);
+          setLoading(false);
+        }
+
       } catch (err) {
         setError('Failed to fetch diagnoses');
         setLoading(false);
@@ -89,10 +94,10 @@ const DiagnosisTable: React.FC = () => {
                 <TableCell>{diagnosis.id}</TableCell>
                 <TableCell>{diagnosis.isTumorDetected ? 'Yes' : 'No'}</TableCell>
                 <TableCell>{diagnosis.tumorType}</TableCell>
-                <TableCell>{diagnosis.tnmKlassification.tKlassification}</TableCell>
-                <TableCell>{diagnosis.tnmKlassification.nKlassification}</TableCell>
-                <TableCell>{diagnosis.tnmKlassification.mKlassification}</TableCell>
-                <TableCell>{new Date(diagnosis.tnmKlassification.date).toLocaleString()}</TableCell>
+                <TableCell>{diagnosis.tnmKlassification ? diagnosis.tnmKlassification.tKlassification : 'N/A'}</TableCell>
+                <TableCell>{diagnosis.tnmKlassification ? diagnosis.tnmKlassification.nKlassification : 'N/A'}</TableCell>
+                <TableCell>{diagnosis.tnmKlassification ? diagnosis.tnmKlassification.mKlassification : 'N/A'}</TableCell>
+                <TableCell>{diagnosis.tnmKlassification ? new Date(diagnosis.tnmKlassification.date).toLocaleString() : 'N/A'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -108,10 +113,16 @@ const DiagnosisTable: React.FC = () => {
               <strong>Tumor Detected:</strong> {selectedDiagnosis.isTumorDetected ? 'Yes' : 'No'}<br />
               <strong>Tumor Type:</strong> {selectedDiagnosis.tumorType}<br />
               <strong>TNM Classification:</strong><br />
-              <strong>T:</strong> {selectedDiagnosis.tnmKlassification.tKlassification}<br />
-              <strong>N:</strong> {selectedDiagnosis.tnmKlassification.nKlassification}<br />
-              <strong>M:</strong> {selectedDiagnosis.tnmKlassification.mKlassification}<br />
-              <strong>Date:</strong> {new Date(selectedDiagnosis.tnmKlassification.date).toLocaleString()}
+              {selectedDiagnosis.tnmKlassification ? (
+                <>
+                  <strong>T:</strong> {selectedDiagnosis.tnmKlassification.tKlassification}<br />
+                  <strong>N:</strong> {selectedDiagnosis.tnmKlassification.nKlassification}<br />
+                  <strong>M:</strong> {selectedDiagnosis.tnmKlassification.mKlassification}<br />
+                  <strong>Date:</strong> {new Date(selectedDiagnosis.tnmKlassification.date).toLocaleString()}
+                </>
+              ) : (
+                <Typography color="error">TNM Classification data not available</Typography>
+              )}
             </DialogContentText>
           </DialogContent>
           <DialogActions>

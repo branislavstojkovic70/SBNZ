@@ -82,4 +82,8 @@ public class PatientService {
     public Patient getPatientByExaminationId(Integer examinationId) {
         return patientRepository.findPatientByExaminationId(examinationId);
     }
+
+    public List<Patient> getPatientsWithOperationTherapy() {
+        return patientRepository.findAllPatientsWithOperationTherapy();
+    }
 }

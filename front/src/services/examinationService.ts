@@ -1,4 +1,5 @@
 import axiosInstance from '../api/axiosInstance';
+import { DetermineDiagnosis } from '../model/examination/DetermineDiagnosis';
 import { Diagnosis } from '../model/examination/Diagnosis';
 import { Examination } from '../model/examination/Examination';
 import { ExaminationState } from '../model/examination/ExaminationState';
@@ -59,5 +60,11 @@ export const addExamination = async (selectedPatient : Patient, doctor : Doctor,
 
 export const updateExamination = async (updatedExamination: Examination): Promise<Examination> => {
   const response = await axiosInstance.put(`/api/examinations/${updatedExamination.id}`, updatedExamination);
+  return response.data;
+};
+
+export const determineDiagnosis = async (data:DetermineDiagnosis) => {
+  data.patient.examinations = [];
+  const response = await axiosInstance.post('/api/examinations/determine-diagnosis', data);
   return response.data;
 };

@@ -83,4 +83,9 @@ public class PatientController {
             return ResponseEntity.notFound().build();
         }
     }
+    @PreAuthorize("hasRole('ROLE_Doctor')")
+    @GetMapping("/with-operation-therapy")
+    public List<Patient> getPatientsWithOperationTherapy() {
+        return patientService.getPatientsWithOperationTherapy();
+    }
 }

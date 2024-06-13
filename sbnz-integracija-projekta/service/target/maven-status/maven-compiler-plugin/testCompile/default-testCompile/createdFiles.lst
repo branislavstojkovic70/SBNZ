@@ -1,0 +1,6 @@
+com\ftn\sbnz\service\tests\BackwardTests.class
+com\ftn\sbnz\service\tests\CepTests.class
+com\ftn\sbnz\service\tests\Forward1RulesTest.class
+com\ftn\sbnz\service\tests\Forward2RulesTest.class
+com\ftn\sbnz\service\tests\RuleTemplatesTest1.class
+com\ftn\sbnz\service\tests\DroolsRuleTest.class

@@ -10,6 +10,7 @@ import javax.transaction.Transactional;
 
 import org.drools.core.time.SessionPseudoClock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import com.ftn.sbnz.model.events.PulseEvent;
@@ -24,7 +25,9 @@ import com.ftn.sbnz.model.models.Fact;
 import com.ftn.sbnz.model.models.examinations.*;
 import com.ftn.sbnz.model.models.therapy.*;
 import com.ftn.sbnz.model.models.users.Doctor;
+import com.ftn.sbnz.model.models.users.OperatedPatient;
 import com.ftn.sbnz.model.models.users.Patient;
+import com.ftn.sbnz.service.repository.examination.ExaminationRepository;
 import com.ftn.sbnz.service.repository.users.DoctorRepository;
 import com.ftn.sbnz.service.repository.users.PatientRepository;
 
@@ -35,15 +38,17 @@ public class SimulationService {
         private final DoctorRepository doctorRepository;
         private final DroolsService droolsService;
         private final EntityManager entityManager;
+        private final ExaminationRepository examinationRepository;
 
         @Autowired
         public SimulationService(PatientRepository patientRepository,
                         DoctorRepository doctorRepository,
-                        DroolsService droolsService, EntityManager entityManager) {
+                        DroolsService droolsService, EntityManager entityManager, ExaminationRepository examinationRepository) {
                 this.entityManager = entityManager;
                 this.patientRepository = patientRepository;
                 this.doctorRepository = doctorRepository;
                 this.droolsService = droolsService;
+                this.examinationRepository = examinationRepository;
         }
 
         @Transactional
@@ -184,6 +189,121 @@ public class SimulationService {
                 this.droolsService.getBwKsession().insert(new Fact(child, parent));
                 this.droolsService.getBwKsession().insert(new UpdatedExamination(parent, examination));
                 this.droolsService.getBwKsession().fireAllRules();
+        }
+
+        @Transactional
+        public void testForward2(Integer patientId) {
+                Patient p = this.patientRepository.findById(patientId)
+                                .orElseThrow(() -> new EntityNotFoundException("Patient not found"));
+                p = this.entityManager.merge(p);
+
+                List<Examination> allExaminations = new ArrayList<>(); // List to collect all examinations
+
+                try {
+                        // Create Patient
+                        Patient patient = new Patient();
+                        Set<Examination> examinations = new HashSet<>();
+                        patient.setExaminations(examinations);
+
+                        // Create OperatedPatient
+                        Examination operationExamination = new Examination();
+                        operationExamination.setExaminationState(ExaminationState.DONE);
+                        operationExamination.setNote("operation");
+
+                        Operation operation = new Operation();
+                        operationExamination.setTherapy(operation);
+
+                        examinations.add(operationExamination);
+                        allExaminations.add(operationExamination); // Add to the list
+
+                        OperatedPatient operatedPatient = new OperatedPatient();
+                        operatedPatient.setPatient(patient);
+                        operatedPatient.setOperation(operation);
+                        operatedPatient.setPulmonaryResistance(false);
+                        operatedPatient.setPulmonaryHypertension(false);
+
+                        droolsService.getForward2Ksession().insert(patient);
+                        droolsService.getForward2Ksession().insert(operationExamination);
+                        droolsService.getForward2Ksession().insert(operation);
+                        droolsService.getForward2Ksession().insert(operatedPatient);
+
+                        // Check for resistance in pulmonary blood vessels
+                        Examination ultrasoundExamination = new Examination();
+                        ultrasoundExamination.setExaminationState(ExaminationState.DONE);
+                        ultrasoundExamination.setNote("ultrasound");
+
+                        TestResult ultrasoundResult = new TestResult();
+                        ultrasoundResult.setDescription("pulmonary artery pressure");
+                        ultrasoundResult.setValue(30.0);
+
+                        ExaminationType ultrasoundType = new ExaminationType();
+                        Set<TestResult> ultrasoundResults = new HashSet<>();
+                        ultrasoundResults.add(ultrasoundResult);
+                        ultrasoundType.setTestResults(ultrasoundResults);
+                        Set<ExaminationType> ultrasoundTypes = new HashSet<>();
+                        ultrasoundTypes.add(ultrasoundType);
+                        ultrasoundExamination.setExaminationTypes(ultrasoundTypes);
+
+                        Examination spiroergometryExamination = new Examination();
+                        spiroergometryExamination.setExaminationState(ExaminationState.DONE);
+                        spiroergometryExamination.setNote("spiroergometry");
+
+                        TestResult spiroergometryResult = new TestResult();
+                        spiroergometryResult.setDescription("VO2 max");
+                        spiroergometryResult.setValue(70.0);
+
+                        ExaminationType spiroergometryType = new ExaminationType();
+                        Set<TestResult> spiroergometryResults = new HashSet<>();
+                        spiroergometryResults.add(spiroergometryResult);
+                        spiroergometryType.setTestResults(spiroergometryResults);
+                        Set<ExaminationType> spiroergometryTypes = new HashSet<>();
+                        spiroergometryTypes.add(spiroergometryType);
+                        spiroergometryExamination.setExaminationTypes(spiroergometryTypes);
+
+                        examinations.add(ultrasoundExamination);
+                        examinations.add(spiroergometryExamination);
+                        allExaminations.add(ultrasoundExamination); // Add to the list
+                        allExaminations.add(spiroergometryExamination); // Add to the list
+
+                        droolsService.getForward2Ksession().insert(ultrasoundExamination);
+                        droolsService.getForward2Ksession().insert(ultrasoundResult);
+                        droolsService.getForward2Ksession().insert(spiroergometryExamination);
+                        droolsService.getForward2Ksession().insert(spiroergometryResult);
+
+                        // Diagnose pulmonary hypertension
+                        operatedPatient.setPulmonaryResistance(true);
+                        droolsService.getForward2Ksession().insert(operatedPatient);
+                        operatedPatient.setPulmonaryHypertension(true);
+                        droolsService.getForward2Ksession().insert(operatedPatient);
+                        Examination examination = new Examination();
+                        PaliativeCare palliativeCare = new PaliativeCare();
+                        palliativeCare.setTherapyState(TherapyState.FINISHED);
+                        palliativeCare.setTherapyType(TherapyType.PALLIATIVE_CARE);
+                        examination.setTherapy(palliativeCare);
+                        examinations.add(examination);
+                        allExaminations.add(examination); 
+
+                        droolsService.getForward2Ksession().insert(examination);
+                        droolsService.getForward2Ksession().insert(palliativeCare);
+
+                        int firedRules = droolsService.getForward2Ksession().fireAllRules();
+                        
+                        System.out.println("Number of rules fired: " + firedRules);
+                        
+                        System.out.println("All Examinations:");
+                        Doctor doctor = this.doctorRepository.findById(2).get();
+                        Set<Examination> examinations2 = patient.getExaminations();
+                        for (Examination exam : allExaminations) {
+                                exam.setDoctor(attachDoctor(doctor));
+                                exam.setExaminationState(ExaminationState.DONE);
+                                exam = this.examinationRepository.save(exam);
+                                examinations2.add(exam);
+                        }
+                        patient.setExaminations(examinations2);
+                        patientRepository.save(patient);
+                } catch (Exception e) {
+                        e.printStackTrace();
+                }
         }
 
         private Doctor attachDoctor(Doctor doctor) {

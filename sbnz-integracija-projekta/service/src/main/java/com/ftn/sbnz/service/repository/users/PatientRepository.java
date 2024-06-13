@@ -17,4 +17,6 @@ public interface PatientRepository extends JpaRepository<Patient, Integer>{
     public List<Patient> findAll();
     @Query("SELECT p FROM Patient p JOIN p.examinations e WHERE e.id = :examinationId")
     Patient findPatientByExaminationId(@Param("examinationId") Integer examinationId);
+    @Query("SELECT p FROM Patient p JOIN p.examinations e JOIN e.therapy t WHERE t.therapyType = com.ftn.sbnz.model.models.therapy.TherapyType.OPERATION")
+    List<Patient> findAllPatientsWithOperationTherapy();
 }

@@ -38,6 +38,9 @@ const DoctorLayout = () => {
           <Link component={RouterLink} to="/doctor/addExamination" color="inherit" underline="none">
             <StyledButton>Schedule examination</StyledButton>
           </Link>
+          <Link component={RouterLink} to="/doctor/determineDiagnosis" color="inherit" underline="none">
+            <StyledButton>Determine diagnosis</StyledButton>
+          </Link>
         </Toolbar>
       </AppBar>
       <Outlet />
